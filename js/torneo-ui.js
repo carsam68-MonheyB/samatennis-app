@@ -1,0 +1,781 @@
+/*
+ * torneo-ui.js — Interfaz: pestañas, captura de marcadores y pintado
+ * de tablas, ranking y cuadro final.
+ */
+(function () {
+  "use strict";
+
+  var Model = window.TorneoModel;
+  var Store = window.TorneoStore;
+
+  var $ = function (selector, raiz) { return (raiz || document).querySelector(selector); };
+  var $$ = function (selector, raiz) {
+    return Array.prototype.slice.call((raiz || document).querySelectorAll(selector));
+  };
+
+  var vistaActual = "inicio";
+  var grupoFiltrado = "todos";
+
+  function escapar(texto) {
+    return String(texto == null ? "" : texto)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function pct(valor) {
+    return valor == null ? "—" : (valor * 100).toFixed(1) + "%";
+  }
+
+  function puntos(valor) {
+    return valor == null ? "—" : valor.toFixed(4);
+  }
+
+  // ------------------------------------------------------------- pestañas
+
+  function mostrarVista(nombre) {
+    vistaActual = nombre;
+    $$(".tab").forEach(function (tab) {
+      tab.classList.toggle("is-active", tab.dataset.vista === nombre);
+    });
+    $$(".vista").forEach(function (vista) {
+      vista.classList.toggle("is-active", vista.id === "vista-" + nombre);
+    });
+    render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // ------------------------------------------------------------- jugadores
+
+  function filaJugador(nombre, indice, tipo) {
+    return (
+      '<div class="fila-jugador">' +
+      "<span>" + (indice + 1) + "</span>" +
+      '<input type="text" value="' + escapar(nombre) + '" data-tipo="' + tipo + '" data-indice="' + indice + '" />' +
+      '<button type="button" class="btn-icono" data-quitar="' + tipo + '" data-indice="' + indice +
+      '" aria-label="Quitar">&times;</button>' +
+      "</div>"
+    );
+  }
+
+  function pintarJugadores() {
+    var estado = Store.estado();
+    $("#lista-cabezas").innerHTML = estado.cabezas.length
+      ? estado.cabezas.map(function (nombre, i) { return filaJugador(nombre, i, "cabeza"); }).join("")
+      : '<p class="nota">Aún no hay cabezas de grupo.</p>';
+    $("#lista-inscritos").innerHTML = estado.inscritos.length
+      ? estado.inscritos.map(function (nombre, i) { return filaJugador(nombre, i, "inscrito"); }).join("")
+      : '<p class="nota">Aún no hay inscritos.</p>';
+  }
+
+  // ---------------------------------------------------------------- sorteo
+
+  function pintarSorteo() {
+    var estado = Store.estado();
+    var orden = estado.sorteo.orden || [];
+    var aviso = $("#aviso-sorteo");
+
+    if (estado.sorteo.congelado) {
+      aviso.hidden = false;
+      aviso.textContent =
+        "El sorteo está congelado. Si lo reabres y vuelves a sortear se rehacen los grupos; " +
+        "los resultados de las parejas que sigan enfrentándose se conservan.";
+    } else if (orden.length) {
+      aviso.hidden = false;
+      aviso.textContent = "Sorteo provisional: congélalo para armar los grupos y el calendario.";
+    } else {
+      aviso.hidden = true;
+    }
+
+    $("#tabla-sorteo").innerHTML = orden.length
+      ? '<div class="tabla-wrap"><table><thead><tr><th class="num">Orden</th><th>Jugador</th></tr></thead><tbody>' +
+        orden.map(function (nombre, i) {
+          return '<tr><td class="num">' + (i + 1) + "</td><td>" + escapar(nombre) + "</td></tr>";
+        }).join("") +
+        "</tbody></table></div>"
+      : '<p class="nota">Presiona la pelota para hacer el sorteo.</p>';
+
+    $("#grupos-armados").innerHTML = estado.grupos.length
+      ? estado.grupos.map(function (grupo) {
+          return (
+            '<div class="grupo-card"><h3>' + escapar(grupo.nombre) + "</h3><ol>" +
+            grupo.jugadores.map(function (jugador) {
+              var esCabeza = Model.esMismoJugador(jugador, grupo.cabeza);
+              return "<li>" + escapar(jugador) + (esCabeza ? ' <span class="badge badge--cg">CG</span>' : "") + "</li>";
+            }).join("") +
+            "</ol></div>"
+          );
+        }).join("")
+      : '<p class="nota">Los grupos aparecen al congelar el sorteo.</p>';
+  }
+
+  // ---------------------------------------------- tarjeta de partido (HTML)
+
+  function necesitaTieBreak(partido, indice) {
+    var set = (partido.sets || [])[indice];
+    if (!set) return false;
+    if (partido.superMuerte && indice === 2) return false;
+    return (set.a === 7 && set.b === 6) || (set.a === 6 && set.b === 7);
+  }
+
+  function entradaTieBreak(indice, lado, valor) {
+    return (
+      '<input type="number" min="0" max="99" class="tb" placeholder="tb" value="' +
+      (valor == null ? "" : valor) + '" data-set="' + indice + '" data-lado="' + lado + '" data-tb="1" />'
+    );
+  }
+
+  function celdaSet(partido, indice, lado) {
+    var set = (partido.sets || [])[indice] || {};
+    var esSuper = partido.superMuerte && indice === 2;
+    // Con super muerte los inputs son los puntos del match tie-break, no juegos.
+    var valor = esSuper ? (lado === "a" ? set.tbA : set.tbB) : (lado === "a" ? set.a : set.b);
+
+    var html =
+      '<input type="number" min="0" max="99" inputmode="numeric" value="' + (valor == null ? "" : valor) +
+      '" data-set="' + indice + '" data-lado="' + lado + '" aria-label="Set ' + (indice + 1) + '" />';
+
+    if (necesitaTieBreak(partido, indice)) {
+      html += entradaTieBreak(indice, lado, lado === "a" ? set.tbA : set.tbB);
+    }
+    return "<div>" + html + "</div>";
+  }
+
+  function pieDeTarjeta(partido, esCuadro) {
+    var ganador = Model.ganadorPartido(partido);
+    return (
+      '<div class="resultado-texto">' +
+      (ganador ? "Gana <strong>" + escapar(ganador) + "</strong> · " + escapar(Model.marcador(partido)) : "Sin resultado") +
+      "</div>" +
+      '<div class="partido__acciones">' +
+      '<label class="check-super"><input type="checkbox" data-super="1"' + (partido.superMuerte ? " checked" : "") +
+      " /> Tercer set en super muerte</label>" +
+      '<button type="button" class="btn btn--sm btn--ghost" data-wo="a">W.O. ' + escapar(partido.jugadorA) + "</button>" +
+      '<button type="button" class="btn btn--sm btn--ghost" data-wo="b">W.O. ' + escapar(partido.jugadorB) + "</button>" +
+      '<button type="button" class="btn btn--sm btn--ghost" data-limpiar="1">Limpiar</button>' +
+      (esCuadro ? '<button type="button" class="btn btn--sm" data-cerrar="1">Guardar y cerrar</button>' : "") +
+      "</div>"
+    );
+  }
+
+  function tarjetaPartido(partido, opciones) {
+    var config = opciones || {};
+    var esCuadro = config.ambito === "cuadro";
+    var ganador = Model.ganadorPartido(partido);
+    var ganaA = ganador && Model.esMismoJugador(ganador, partido.jugadorA);
+    var ganaB = ganador && Model.esMismoJugador(ganador, partido.jugadorB);
+
+    var fechas = esCuadro
+      ? ""
+      : '<div class="partido__fechas">' +
+        '<input type="date" value="' + escapar(partido.fecha || "") + '" data-campo="fecha" />' +
+        '<input type="time" value="' + escapar(partido.hora || "") + '" data-campo="hora" />' +
+        "</div>";
+
+    return (
+      '<div class="partido" data-partido="' + escapar(partido.id) +
+      '" data-ambito="' + (config.ambito || "grupo") +
+      '" data-titulo="' + escapar(config.titulo || partido.id) +
+      '" data-jugador-a="' + escapar(partido.jugadorA) +
+      '" data-jugador-b="' + escapar(partido.jugadorB) + '">' +
+      '<div class="partido__cabecera">' +
+      '<div class="partido__titulo">' + escapar(config.titulo || partido.id) + "</div>" + fechas +
+      "</div>" +
+      '<div class="marcador-grid">' +
+      '<div></div><div class="encabezado">Set 1</div><div class="encabezado">Set 2</div>' +
+      '<div class="encabezado" data-encabezado-3>' + (partido.superMuerte ? "S. muerte" : "Set 3") + "</div>" +
+      '<div class="nombre' + (ganaA ? " gana" : "") + '">' + escapar(partido.jugadorA) + "</div>" +
+      celdaSet(partido, 0, "a") + celdaSet(partido, 1, "a") + celdaSet(partido, 2, "a") +
+      '<div class="nombre' + (ganaB ? " gana" : "") + '">' + escapar(partido.jugadorB) + "</div>" +
+      celdaSet(partido, 0, "b") + celdaSet(partido, 1, "b") + celdaSet(partido, 2, "b") +
+      "</div>" +
+      '<div class="partido__pie">' + pieDeTarjeta(partido, esCuadro) + "</div>" +
+      "</div>"
+    );
+  }
+
+  // ------------------------------------- lectura y actualización en caliente
+
+  /** Lee los inputs de una tarjeta y devuelve el marcador en el formato del modelo. */
+  function leerMarcador(tarjeta) {
+    var superMuerte = $("[data-super]", tarjeta).checked;
+    var sets = [null, null, null];
+
+    for (var indice = 0; indice < 3; indice++) {
+      var entradaA = tarjeta.querySelector('input[data-set="' + indice + '"][data-lado="a"]:not([data-tb])');
+      var entradaB = tarjeta.querySelector('input[data-set="' + indice + '"][data-lado="b"]:not([data-tb])');
+      var tbA = tarjeta.querySelector('input[data-set="' + indice + '"][data-lado="a"][data-tb]');
+      var tbB = tarjeta.querySelector('input[data-set="' + indice + '"][data-lado="b"][data-tb]');
+
+      var valorA = entradaA && entradaA.value !== "" ? Number(entradaA.value) : null;
+      var valorB = entradaB && entradaB.value !== "" ? Number(entradaB.value) : null;
+      if (valorA == null && valorB == null) continue;
+      valorA = valorA || 0;
+      valorB = valorB || 0;
+
+      if (superMuerte && indice === 2) {
+        // El match tie-break se registra 7-6 en sets; los puntos quedan de constancia.
+        sets[indice] = { a: valorA > valorB ? 7 : 6, b: valorA > valorB ? 6 : 7, tbA: valorA, tbB: valorB };
+      } else {
+        var set = { a: valorA, b: valorB };
+        if (tbA && tbA.value !== "") set.tbA = Number(tbA.value);
+        if (tbB && tbB.value !== "") set.tbB = Number(tbB.value);
+        sets[indice] = set;
+      }
+    }
+
+    while (sets.length && !sets[sets.length - 1]) sets.pop();
+    return { sets: sets, superMuerte: superMuerte };
+  }
+
+  /** Partido reconstruido a partir de lo que hay en pantalla. */
+  function partidoDeTarjeta(tarjeta) {
+    var marcador = leerMarcador(tarjeta);
+    return {
+      id: tarjeta.dataset.partido,
+      jugadorA: tarjeta.dataset.jugadorA,
+      jugadorB: tarjeta.dataset.jugadorB,
+      sets: marcador.sets,
+      superMuerte: marcador.superMuerte
+    };
+  }
+
+  /** Agrega o quita los campos de tie-break según cómo vaya quedando el set. */
+  function sincronizarTieBreaks(tarjeta, partido) {
+    [0, 1, 2].forEach(function (indice) {
+      var necesita = necesitaTieBreak(partido, indice);
+      ["a", "b"].forEach(function (lado) {
+        var base = tarjeta.querySelector('input[data-set="' + indice + '"][data-lado="' + lado + '"]:not([data-tb])');
+        if (!base) return;
+        var contenedor = base.parentNode;
+        var existente = contenedor.querySelector("input[data-tb]");
+        if (necesita && !existente) contenedor.insertAdjacentHTML("beforeend", entradaTieBreak(indice, lado, null));
+        if (!necesita && existente) existente.remove();
+      });
+    });
+  }
+
+  /** Refresca ganador, marcador y tie-breaks sin volver a dibujar la tarjeta. */
+  function actualizarTarjeta(tarjeta) {
+    var partido = partidoDeTarjeta(tarjeta);
+    var ganador = Model.ganadorPartido(partido);
+    var nombres = $$(".marcador-grid .nombre", tarjeta);
+
+    if (nombres[0]) nombres[0].classList.toggle("gana", !!ganador && Model.esMismoJugador(ganador, partido.jugadorA));
+    if (nombres[1]) nombres[1].classList.toggle("gana", !!ganador && Model.esMismoJugador(ganador, partido.jugadorB));
+
+    $(".resultado-texto", tarjeta).innerHTML = ganador
+      ? "Gana <strong>" + escapar(ganador) + "</strong> · " + escapar(Model.marcador(partido))
+      : "Sin resultado";
+
+    sincronizarTieBreaks(tarjeta, partido);
+  }
+
+  /** Vuelve a dibujar una sola tarjeta (al cambiar super muerte, W.O. o limpiar). */
+  function reconstruirTarjeta(tarjeta) {
+    var esCuadro = tarjeta.dataset.ambito === "cuadro";
+    var id = tarjeta.dataset.partido;
+    var partido;
+
+    if (esCuadro) {
+      var guardado = Store.estado().cuadro[id] || {};
+      partido = {
+        id: id,
+        jugadorA: tarjeta.dataset.jugadorA,
+        jugadorB: tarjeta.dataset.jugadorB,
+        sets: guardado.sets || [],
+        superMuerte: !!guardado.superMuerte
+      };
+    } else {
+      partido = Store.partidoPorId(id);
+      if (!partido) return;
+    }
+
+    tarjeta.outerHTML = tarjetaPartido(partido, { titulo: tarjeta.dataset.titulo, ambito: tarjeta.dataset.ambito });
+  }
+
+  function guardarMarcador(tarjeta) {
+    var id = tarjeta.dataset.partido;
+    var datos = leerMarcador(tarjeta);
+    if (tarjeta.dataset.ambito === "cuadro") Store.setResultadoCuadro(id, datos.sets.length ? datos : null);
+    else Store.setPartido(id, datos);
+  }
+
+  // ------------------------------------------------------------ resultados
+
+  function pintarResultados() {
+    var estado = Store.estado();
+
+    $("#filtro-grupos").innerHTML = [{ nombre: "todos", etiqueta: "Todos" }]
+      .concat(estado.grupos.map(function (grupo) { return { nombre: grupo.nombre, etiqueta: grupo.nombre }; }))
+      .map(function (opcion) {
+        return '<button type="button" class="chip' + (opcion.nombre === grupoFiltrado ? " is-active" : "") +
+          '" data-grupo="' + escapar(opcion.nombre) + '">' + escapar(opcion.etiqueta) + "</button>";
+      })
+      .join("");
+
+    var visibles = estado.partidos.filter(function (partido) {
+      return grupoFiltrado === "todos" || partido.grupo === grupoFiltrado;
+    });
+
+    $("#lista-partidos").innerHTML = visibles.length
+      ? visibles.map(function (partido, indice) {
+          return tarjetaPartido(partido, {
+            titulo: partido.grupo + " · Partido " + (partido.id.split("-P")[1] || indice + 1),
+            ambito: "grupo"
+          });
+        }).join("")
+      : '<div class="vacio-msg">Congela el sorteo para generar el calendario de partidos.</div>';
+  }
+
+  // ---------------------------------------------------------------- grupos
+
+  function pintarGrupos() {
+    var datos = Store.derivado();
+
+    $("#tablas-grupos").innerHTML = datos.tablas.length
+      ? datos.tablas.map(function (tabla) {
+          var filas = tabla.filas.map(function (fila) {
+            var opciones = [0, 1, 2, 3, 4, 5].map(function (nivel) {
+              return '<option value="' + nivel + '"' + (nivel === fila.desempate ? " selected" : "") + ">" +
+                (nivel === 0 ? "—" : nivel) + "</option>";
+            }).join("");
+            return (
+              "<tr" + (fila.clasificado ? ' class="clasificado"' : "") + ">" +
+              '<td class="num">' + fila.posicion + "</td>" +
+              '<td class="jugador">' + escapar(fila.jugador) +
+              (fila.esCabeza ? ' <span class="badge badge--cg">CG</span>' : "") +
+              (fila.clasificado ? ' <span class="badge badge--ok" title="Clasifica al cuadro final">✓</span>' : "") + "</td>" +
+              '<td class="num">' + fila.pg + "-" + fila.pp + "</td>" +
+              '<td class="num">' + fila.sg + "-" + fila.sp + "</td>" +
+              '<td class="num">' + pct(fila.pctSets) + "</td>" +
+              '<td class="num">' + fila.jg + "-" + fila.jp + "</td>" +
+              '<td class="num">' + pct(fila.pctJuegos) + "</td>" +
+              '<td class="num"><strong>' + puntos(fila.puntaje) + "</strong></td>" +
+              '<td><select class="select-desempate" data-desempate="' + escapar(fila.jugador) + '">' +
+              opciones + "</select></td></tr>"
+            );
+          }).join("");
+
+          return (
+            '<div class="grupo-card"><h3>' + escapar(tabla.grupo.nombre) +
+            "<small>CG: " + escapar(tabla.grupo.cabeza) + "</small></h3>" +
+            '<div class="tabla-wrap"><table><thead><tr>' +
+            '<th class="num">#</th><th>Jugador</th><th class="num">PG-PP</th><th class="num">Sets</th>' +
+            '<th class="num">%S</th><th class="num">Juegos</th><th class="num">%J</th>' +
+            '<th class="num">Puntaje</th><th>Des.</th>' +
+            "</tr></thead><tbody>" + filas + "</tbody></table></div></div>"
+          );
+        }).join("")
+      : '<div class="vacio-msg">Arma los grupos desde la pestaña Sorteo.</div>';
+  }
+
+  // --------------------------------------------------------------- ranking
+
+  function pintarRanking() {
+    var datos = Store.derivado();
+
+    $("#tabla-ranking").innerHTML = datos.ranking.length
+      ? '<div class="tabla-wrap"><table><thead><tr>' +
+        '<th class="num">RKN</th><th>Jugador</th><th>Grupo</th><th class="num">Pos.</th>' +
+        '<th class="num">% sets</th><th class="num">% juegos</th><th class="num">Puntaje</th>' +
+        "</tr></thead><tbody>" +
+        datos.ranking.map(function (fila) {
+          return (
+            '<tr><td class="num">' + fila.rkn + "</td>" +
+            '<td class="jugador">' + escapar(fila.jugador) + "</td>" +
+            "<td>" + escapar(fila.grupo) + "</td>" +
+            '<td class="num">' + fila.posicion + "</td>" +
+            '<td class="num">' + pct(fila.pctSets) + "</td>" +
+            '<td class="num">' + pct(fila.pctJuegos) + "</td>" +
+            '<td class="num"><strong>' + puntos(fila.puntaje) + "</strong></td></tr>"
+          );
+        }).join("") +
+        "</tbody></table></div>"
+      : '<div class="vacio-msg">Aún no hay clasificados: captura resultados de los grupos.</div>';
+  }
+
+  // ---------------------------------------------------------------- cuadro
+
+  function ladoDeLlave(lado, esGanador, esPrimeraRonda) {
+    // En la primera ronda un lugar vacío es un BYE; después es un partido pendiente.
+    if (!lado) return '<div class="llave__lado vacio">' + (esPrimeraRonda ? "BYE" : "Por definir") + "</div>";
+    return (
+      '<div class="llave__lado' + (esGanador ? " gana" : "") + '">' +
+      "<span>" + escapar(lado.jugador) + "</span>" +
+      '<span class="llave__seed">' + (lado.seed ? "#" + lado.seed : "") + "</span></div>"
+    );
+  }
+
+  function pintarCuadro() {
+    var datos = Store.derivado();
+    var cuadro = datos.cuadro;
+    var nota = $("#nota-cuadro");
+
+    if (!cuadro) {
+      nota.textContent = "Se necesitan al menos dos clasificados para armar el cuadro.";
+      $("#cuadro").innerHTML = '<div class="vacio-msg">Sin clasificados todavía.</div>';
+      return;
+    }
+
+    nota.innerHTML =
+      "Cuadro de <strong>" + cuadro.tamano + "</strong> lugares con <strong>" + datos.ranking.length +
+      "</strong> clasificados y <strong>" + cuadro.byes + "</strong> BYE. " +
+      "Los mejores sembrados reciben el BYE y avanzan solos a la siguiente ronda.";
+
+    var columnas = cuadro.rondas.map(function (ronda, indiceRonda) {
+      var esPrimeraRonda = indiceRonda === 0;
+      var llaves = ronda.partidos.map(function (partido) {
+        var jugable = partido.ladoA && partido.ladoB;
+        var clase = partido.ganador ? "resuelta" : jugable ? "jugable" : "";
+        var marcador = partido.marcador ? '<div class="llave__marcador">' + escapar(partido.marcador) + "</div>" : "";
+        var boton = jugable
+          ? '<div class="llave__editar"><button type="button" class="btn btn--sm btn--ghost" data-llave="' +
+            escapar(partido.id) + '">' + (partido.ganador ? "Editar marcador" : "Capturar marcador") + "</button></div>"
+          : "";
+        var ganaA = partido.ganador && partido.ladoA && partido.ganador.jugador === partido.ladoA.jugador;
+        var ganaB = partido.ganador && partido.ladoB && partido.ganador.jugador === partido.ladoB.jugador;
+
+        return (
+          '<div class="llave-slot"><div class="llave ' + clase + '">' +
+          ladoDeLlave(partido.ladoA, ganaA, esPrimeraRonda) +
+          ladoDeLlave(partido.ladoB, ganaB, esPrimeraRonda) +
+          marcador + boton +
+          '<div class="llave__form" data-form="' + escapar(partido.id) + '" hidden></div>' +
+          "</div></div>"
+        );
+      }).join("");
+
+      return '<div class="ronda"><div class="ronda__titulo">' + escapar(ronda.nombre) +
+        '</div><div class="ronda__llaves">' + llaves + "</div></div>";
+    });
+
+    var campeon = cuadro.campeon
+      ? '<div class="ronda"><div class="ronda__titulo">Campeón</div>' +
+        '<div class="ronda__llaves"><div class="llave-slot"><div class="campeon">' +
+        "<span>Campeón</span><strong>" + escapar(cuadro.campeon.jugador) + "</strong>" +
+        (cuadro.finalista ? "<small>Finalista: " + escapar(cuadro.finalista.jugador) + "</small>" : "") +
+        "</div></div></div></div>"
+      : "";
+
+    $("#cuadro").innerHTML = columnas.join("") + campeon;
+  }
+
+  /** Abre el formulario de marcador dentro de una llave del cuadro. */
+  function abrirFormularioLlave(id) {
+    var datos = Store.derivado();
+    var partido = null;
+    datos.cuadro.rondas.forEach(function (ronda) {
+      ronda.partidos.forEach(function (candidato) { if (candidato.id === id) partido = candidato; });
+    });
+    if (!partido || !partido.ladoA || !partido.ladoB) return;
+
+    var guardado = Store.estado().cuadro[id] || {};
+    var contenedor = $('[data-form="' + id + '"]');
+    if (!contenedor) return;
+    contenedor.hidden = false;
+    contenedor.innerHTML = tarjetaPartido(
+      {
+        id: id,
+        jugadorA: partido.ladoA.jugador,
+        jugadorB: partido.ladoB.jugador,
+        sets: guardado.sets || [],
+        superMuerte: !!guardado.superMuerte
+      },
+      { titulo: partido.id, ambito: "cuadro" }
+    );
+  }
+
+  // -------------------------------------------------------- inicio y KPIs
+
+  function pintarInicio() {
+    var estado = Store.estado();
+    var datos = Store.derivado();
+    var jugados = estado.partidos.filter(function (partido) { return Model.ganadorPartido(partido); }).length;
+
+    var tarjetas = [
+      { valor: estado.cabezas.length + estado.inscritos.length, etiqueta: "Jugadores" },
+      { valor: estado.grupos.length, etiqueta: "Grupos" },
+      { valor: jugados + " / " + estado.partidos.length, etiqueta: "Partidos de grupo jugados" },
+      { valor: datos.ranking.length, etiqueta: "Clasificados" },
+      { valor: datos.cuadro ? datos.cuadro.tamano : "—", etiqueta: "Lugares en el cuadro" },
+      { valor: datos.cuadro && datos.cuadro.campeon ? datos.cuadro.campeon.jugador : "—", etiqueta: "Campeón" }
+    ];
+
+    $("#kpis").innerHTML = tarjetas.map(function (tarjeta) {
+      return '<div class="kpi"><strong>' + escapar(tarjeta.valor) + "</strong><span>" +
+        escapar(tarjeta.etiqueta) + "</span></div>";
+    }).join("");
+
+    $("#torneo-nombre").value = estado.torneo.nombre || "";
+    $("#torneo-categoria").value = estado.torneo.categoria || "";
+    $("#torneo-sede").value = estado.torneo.sede || "";
+    $("#torneo-inicio").value = estado.torneo.inicio || "";
+    $("#torneo-fin").value = estado.torneo.fin || "";
+  }
+
+  function pintarCabecera() {
+    var torneo = Store.estado().torneo;
+    var partes = [torneo.nombre, torneo.categoria].filter(Boolean);
+    $("#brand-torneo").textContent = partes.join(" · ") || "Torneo sin nombre";
+  }
+
+  function render() {
+    pintarCabecera();
+    if (vistaActual === "inicio") pintarInicio();
+    if (vistaActual === "jugadores") pintarJugadores();
+    if (vistaActual === "sorteo") pintarSorteo();
+    if (vistaActual === "resultados") pintarResultados();
+    if (vistaActual === "grupos") pintarGrupos();
+    if (vistaActual === "ranking") pintarRanking();
+    if (vistaActual === "cuadro") pintarCuadro();
+  }
+
+  // ------------------------------------------------------------- eventos
+
+  function listaDe(tipo) {
+    var estado = Store.estado();
+    return tipo === "cabeza" ? estado.cabezas.slice() : estado.inscritos.slice();
+  }
+
+  function guardarLista(tipo, lista) {
+    if (tipo === "cabeza") Store.setCabezas(lista);
+    else Store.setInscritos(lista);
+  }
+
+  /** Mientras se escribe: sólo refrescamos la tarjeta, sin re-dibujar la vista. */
+  function alEscribirEnPartido(evento) {
+    var tarjeta = evento.target.closest(".partido");
+    if (!tarjeta || !evento.target.matches("input[data-set]")) return;
+    actualizarTarjeta(tarjeta);
+  }
+
+  function alCambiarEnPartido(evento) {
+    var tarjeta = evento.target.closest(".partido");
+    if (!tarjeta) return;
+
+    if (evento.target.matches("[data-campo]")) {
+      Store.setPartido(tarjeta.dataset.partido, {
+        fecha: $('[data-campo="fecha"]', tarjeta).value,
+        hora: $('[data-campo="hora"]', tarjeta).value
+      });
+      return;
+    }
+
+    if (evento.target.matches("[data-super]")) {
+      guardarMarcador(tarjeta);
+      reconstruirTarjeta(tarjeta);
+      return;
+    }
+
+    if (evento.target.matches("input[data-set]")) {
+      guardarMarcador(tarjeta);
+      actualizarTarjeta(tarjeta);
+    }
+  }
+
+  function alClicEnPartido(evento) {
+    var tarjeta = evento.target.closest(".partido");
+    if (!tarjeta) return false;
+
+    var esCuadro = tarjeta.dataset.ambito === "cuadro";
+
+    if (evento.target.closest("[data-cerrar]")) {
+      guardarMarcador(tarjeta);
+      pintarCuadro();
+      return true;
+    }
+
+    var wo = evento.target.closest("[data-wo]");
+    var limpiar = evento.target.closest("[data-limpiar]");
+    if (!wo && !limpiar) return false;
+
+    var sets = [];
+    if (wo) {
+      var ganaA = wo.dataset.wo === "a";
+      sets = [
+        { a: ganaA ? 6 : 0, b: ganaA ? 0 : 6 },
+        { a: ganaA ? 6 : 0, b: ganaA ? 0 : 6 }
+      ];
+    }
+
+    if (esCuadro) {
+      Store.setResultadoCuadro(tarjeta.dataset.partido, sets.length ? { sets: sets, superMuerte: false } : null);
+      pintarCuadro();
+    } else {
+      Store.setPartido(tarjeta.dataset.partido, { sets: sets, superMuerte: false });
+      reconstruirTarjeta(tarjeta);
+    }
+    return true;
+  }
+
+  function conectarEventos() {
+    $("#tabs").addEventListener("click", function (evento) {
+      var tab = evento.target.closest(".tab");
+      if (tab) mostrarVista(tab.dataset.vista);
+    });
+
+    // --- datos del torneo
+    $("#form-torneo").addEventListener("input", function () {
+      Store.setDatosTorneo({
+        nombre: $("#torneo-nombre").value,
+        categoria: $("#torneo-categoria").value,
+        sede: $("#torneo-sede").value,
+        inicio: $("#torneo-inicio").value,
+        fin: $("#torneo-fin").value
+      });
+      pintarCabecera();
+    });
+
+    // --- jugadores
+    $("#vista-jugadores").addEventListener("change", function (evento) {
+      var entrada = evento.target.closest("input[data-tipo]");
+      if (!entrada) return;
+      var lista = listaDe(entrada.dataset.tipo);
+      lista[Number(entrada.dataset.indice)] = entrada.value.trim();
+      guardarLista(entrada.dataset.tipo, lista.filter(Boolean));
+      pintarJugadores();
+    });
+
+    $("#vista-jugadores").addEventListener("click", function (evento) {
+      var quitar = evento.target.closest("[data-quitar]");
+      if (!quitar) return;
+      var lista = listaDe(quitar.dataset.quitar);
+      lista.splice(Number(quitar.dataset.indice), 1);
+      guardarLista(quitar.dataset.quitar, lista);
+      pintarJugadores();
+    });
+
+    $("#btn-agregar-cabeza").addEventListener("click", function () {
+      Store.setCabezas(listaDe("cabeza").concat("Nueva cabeza de grupo"));
+      pintarJugadores();
+    });
+
+    $("#btn-agregar-inscrito").addEventListener("click", function () {
+      Store.setInscritos(listaDe("inscrito").concat("Nuevo jugador"));
+      pintarJugadores();
+    });
+
+    $("#btn-pegar-inscritos").addEventListener("click", function () {
+      var lineas = $("#pegar-inscritos").value.split("\n").map(function (linea) { return linea.trim(); });
+      Store.setInscritos(lineas.filter(Boolean));
+      $("#pegar-inscritos").value = "";
+      pintarJugadores();
+    });
+
+    // --- sorteo
+    $("#btn-sortear").addEventListener("click", function () {
+      var estado = Store.estado();
+      if (estado.sorteo.congelado) {
+        window.alert("El sorteo está congelado. Reábrelo para volver a sortear.");
+        return;
+      }
+      if (!estado.inscritos.length) {
+        window.alert("Primero captura a los inscritos.");
+        return;
+      }
+      var pelota = $("#btn-sortear");
+      pelota.classList.add("girando");
+      window.setTimeout(function () { pelota.classList.remove("girando"); }, 700);
+      Store.sortear();
+      pintarSorteo();
+    });
+
+    $("#btn-congelar").addEventListener("click", function () {
+      var estado = Store.estado();
+      if (!estado.sorteo.orden.length) {
+        window.alert("Haz el sorteo antes de congelarlo.");
+        return;
+      }
+      if (!estado.cabezas.length) {
+        window.alert("Captura al menos una cabeza de grupo.");
+        return;
+      }
+      Store.congelarSorteo();
+      pintarSorteo();
+    });
+
+    $("#btn-reabrir").addEventListener("click", function () {
+      Store.reabrirSorteo();
+      pintarSorteo();
+    });
+
+    // --- resultados
+    $("#filtro-grupos").addEventListener("click", function (evento) {
+      var chip = evento.target.closest(".chip");
+      if (!chip) return;
+      grupoFiltrado = chip.dataset.grupo;
+      pintarResultados();
+    });
+
+    $("#lista-partidos").addEventListener("input", alEscribirEnPartido);
+    $("#lista-partidos").addEventListener("change", alCambiarEnPartido);
+    $("#lista-partidos").addEventListener("click", alClicEnPartido);
+
+    // --- grupos
+    $("#tablas-grupos").addEventListener("change", function (evento) {
+      var select = evento.target.closest("[data-desempate]");
+      if (!select) return;
+      Store.setDesempate(select.dataset.desempate, select.value);
+      pintarGrupos();
+    });
+
+    // --- cuadro
+    $("#cuadro").addEventListener("click", function (evento) {
+      if (alClicEnPartido(evento)) return;
+      var boton = evento.target.closest("[data-llave]");
+      if (boton) abrirFormularioLlave(boton.dataset.llave);
+    });
+    $("#cuadro").addEventListener("input", alEscribirEnPartido);
+    $("#cuadro").addEventListener("change", alCambiarEnPartido);
+
+    // --- archivo
+    $("#btn-exportar").addEventListener("click", function () {
+      var estado = Store.estado();
+      var blob = new Blob([Store.exportar()], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = (estado.torneo.nombre || "torneo").replace(/[^\w-]+/g, "-").toLowerCase() + ".json";
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+      URL.revokeObjectURL(url);
+    });
+
+    $("#btn-importar").addEventListener("click", function () { $("#input-importar").click(); });
+
+    $("#input-importar").addEventListener("change", function (evento) {
+      var archivo = evento.target.files && evento.target.files[0];
+      if (!archivo) return;
+      var lector = new FileReader();
+      lector.onload = function () {
+        try {
+          Store.importar(String(lector.result));
+          render();
+        } catch (error) {
+          window.alert("El archivo no tiene el formato esperado.");
+        }
+      };
+      lector.readAsText(archivo);
+      evento.target.value = "";
+    });
+
+    $("#btn-ejemplo").addEventListener("click", function () {
+      if (!window.confirm("Esto reemplaza el torneo actual por el de ejemplo. ¿Continuar?")) return;
+      Store.cargarEjemplo();
+      render();
+    });
+
+    $("#btn-nuevo").addEventListener("click", function () {
+      if (!window.confirm("Esto borra el torneo actual. ¿Continuar?")) return;
+      Store.nuevoTorneo();
+      grupoFiltrado = "todos";
+      render();
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    Store.cargar();
+    conectarEventos();
+    render();
+  });
+})();

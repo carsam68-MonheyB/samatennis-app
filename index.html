@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Draws Tennis — Grupos, ranking y cuadro final</title>
+<meta name="description" content="App para administrar un torneo de tenis por grupos: sorteo, captura de resultados, porcentajes de sets y juegos, ranking del torneo y cuadro final sembrado." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b3d2e'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23d6f34a'/%3E%3Cpath d='M8 10c4 3 4 9 0 12M24 10c-4 3-4 9 0 12' stroke='%230b3d2e' stroke-width='1.6' fill='none'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/tennis.css" />
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-header__inner">
+    <div class="brand">
+      <span class="brand__ball" aria-hidden="true"></span>
+      <span class="brand__text">
+        <strong>Draws Tennis</strong>
+        <small id="brand-torneo">Torneo</small>
+      </span>
+    </div>
+    <div class="app-header__actions">
+      <button type="button" class="btn btn--ghost" id="btn-exportar">Exportar</button>
+      <button type="button" class="btn btn--ghost" id="btn-importar">Importar</button>
+      <button type="button" class="btn btn--ghost" id="btn-ejemplo">Torneo de ejemplo</button>
+      <button type="button" class="btn btn--ghost btn--danger" id="btn-nuevo">Nuevo torneo</button>
+      <input type="file" id="input-importar" accept="application/json" hidden />
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button type="button" class="tab is-active" data-vista="inicio">Inicio</button>
+    <button type="button" class="tab" data-vista="jugadores">Jugadores</button>
+    <button type="button" class="tab" data-vista="sorteo">Sorteo</button>
+    <button type="button" class="tab" data-vista="resultados">Resultados</button>
+    <button type="button" class="tab" data-vista="grupos">Grupos</button>
+    <button type="button" class="tab" data-vista="ranking">Ranking</button>
+    <button type="button" class="tab" data-vista="cuadro">Cuadro final</button>
+    <button type="button" class="tab" data-vista="reglamento">Reglamento</button>
+  </nav>
+</header>
+
+<main class="app-main">
+
+  <!-- ---------------------------------------------------------- Inicio -->
+  <section class="vista is-active" id="vista-inicio">
+    <div class="hero-card">
+      <h1>Administra tu torneo de tenis de principio a fin</h1>
+      <p>
+        Sorteo de grupos, captura de resultados set por set, porcentajes de sets y juegos,
+        ranking del torneo y cuadro final sembrado automáticamente. Todo se guarda en este
+        navegador: sin cuentas y sin conexión.
+      </p>
+      <form class="grid-form" id="form-torneo">
+        <label>Nombre del torneo
+          <input type="text" id="torneo-nombre" placeholder="Copa Tenis 2025" />
+        </label>
+        <label>Categoría
+          <input type="text" id="torneo-categoria" placeholder="Primera Varonil" />
+        </label>
+        <label>Sede
+          <input type="text" id="torneo-sede" placeholder="Club de Tenis" />
+        </label>
+        <label>Inicio
+          <input type="date" id="torneo-inicio" />
+        </label>
+        <label>Fin
+          <input type="date" id="torneo-fin" />
+        </label>
+      </form>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="panel">
+      <h2>Cómo funciona</h2>
+      <ol class="pasos">
+        <li><strong>Jugadores.</strong> Captura las cabezas de grupo (una por grupo) y la lista de inscritos que entran al sorteo.</li>
+        <li><strong>Sorteo.</strong> Revuelve la lista las veces que quieras y congélalo: ahí se arman los grupos y su calendario.</li>
+        <li><strong>Resultados.</strong> Anota cada set. El tercer set puede capturarse como super muerte (match tie-break).</li>
+        <li><strong>Grupos.</strong> Se calculan sets y juegos ganados, sus porcentajes y el puntaje que define a los clasificados.</li>
+        <li><strong>Ranking y cuadro.</strong> Los clasificados se ordenan por puntaje y siembran el cuadro final.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------- Jugadores -->
+  <section class="vista" id="vista-jugadores">
+    <div class="panel">
+      <h2>Cabezas de grupo</h2>
+      <p class="nota">Una por grupo. El número de cabezas define cuántos grupos tendrá el torneo.</p>
+      <div id="lista-cabezas" class="lista-editable"></div>
+      <button type="button" class="btn btn--sm" id="btn-agregar-cabeza">+ Agregar cabeza de grupo</button>
+    </div>
+
+    <div class="panel">
+      <h2>Inscritos al sorteo</h2>
+      <p class="nota">Los demás jugadores. Se reparten entre los grupos en el orden que salga del sorteo.</p>
+      <div id="lista-inscritos" class="lista-editable"></div>
+      <button type="button" class="btn btn--sm" id="btn-agregar-inscrito">+ Agregar jugador</button>
+      <details class="bloque-pegar">
+        <summary>Pegar una lista completa</summary>
+        <p class="nota">Un nombre por línea. Reemplaza a los inscritos actuales.</p>
+        <textarea id="pegar-inscritos" rows="6" placeholder="Nombre 1&#10;Nombre 2&#10;Nombre 3"></textarea>
+        <button type="button" class="btn btn--sm" id="btn-pegar-inscritos">Usar esta lista</button>
+      </details>
+    </div>
+  </section>
+
+  <!-- ---------------------------------------------------------- Sorteo -->
+  <section class="vista" id="vista-sorteo">
+    <div class="panel">
+      <h2>Sorteo</h2>
+      <p class="nota">
+        Presiona la pelota para revolver a los inscritos. Puedes repetirlo cuantas veces quieras;
+        al congelar el sorteo se arman los grupos y su calendario de partidos.
+      </p>
+      <div class="sorteo-acciones">
+        <button type="button" class="pelota" id="btn-sortear" aria-label="Sortear"></button>
+        <div class="sorteo-botones">
+          <button type="button" class="btn" id="btn-congelar">Congelar sorteo y armar grupos</button>
+          <button type="button" class="btn btn--ghost" id="btn-reabrir">Reabrir sorteo</button>
+        </div>
+      </div>
+      <p class="aviso" id="aviso-sorteo" hidden></p>
+      <div id="tabla-sorteo"></div>
+    </div>
+    <div class="panel">
+      <h2>Grupos armados</h2>
+      <div id="grupos-armados" class="grid-grupos"></div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------ Resultados -->
+  <section class="vista" id="vista-resultados">
+    <div class="panel">
+      <h2>Captura de resultados</h2>
+      <p class="nota">
+        Anota los juegos de cada set. Si el tercer set se juega como super muerte
+        (match tie-break a 10), actívalo: cuenta como set ganado pero sus puntos no suman juegos.
+      </p>
+      <div class="filtro-grupos" id="filtro-grupos"></div>
+    </div>
+    <div id="lista-partidos"></div>
+  </section>
+
+  <!-- ---------------------------------------------------------- Grupos -->
+  <section class="vista" id="vista-grupos">
+    <div class="panel">
+      <h2>Tablas de posiciones</h2>
+      <p class="nota">
+        <strong>Puntaje = % de sets + % de juegos</strong> (más el desempate manual, si lo capturas).
+        Los juegos sólo se cuentan de los dos primeros sets.
+      </p>
+    </div>
+    <div id="tablas-grupos" class="grid-grupos"></div>
+  </section>
+
+  <!-- --------------------------------------------------------- Ranking -->
+  <section class="vista" id="vista-ranking">
+    <div class="panel">
+      <h2>Ranking del torneo</h2>
+      <p class="nota">Clasificados de todos los grupos ordenados por puntaje. Este orden siembra el cuadro final.</p>
+      <div id="tabla-ranking"></div>
+    </div>
+  </section>
+
+  <!-- ----------------------------------------------------------- Cuadro -->
+  <section class="vista" id="vista-cuadro">
+    <div class="panel">
+      <h2>Cuadro final</h2>
+      <p class="nota" id="nota-cuadro"></p>
+    </div>
+    <div class="cuadro-scroll">
+      <div id="cuadro" class="cuadro"></div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------ Reglamento -->
+  <section class="vista" id="vista-reglamento">
+    <div class="panel">
+      <h2>Criterios de desempate (FMT)</h2>
+      <p>Cuando los jugadores terminan la fase de grupos con los mismos resultados, se aplican estos criterios:</p>
+      <h3>1. Empate entre 2 jugadores</h3>
+      <p>Se define por el resultado del enfrentamiento directo entre esos dos jugadores.</p>
+      <h3>2. Empate entre 3 o más jugadores</h3>
+      <ol>
+        <li>Porcentaje de sets ganados sobre sets jugados.</li>
+        <li>Porcentaje de juegos ganados sobre juegos jugados.</li>
+        <li>Sorteo presencial entre los jugadores empatados.</li>
+      </ol>
+      <h3>3. Default o abandono</h3>
+      <p>
+        Se contabiliza para partidos ganados/perdidos y para sets, como si fuera un partido normal.
+        Usa el botón <em>W.O.</em> del partido para registrarlo como 6-0, 6-0.
+      </p>
+      <h3>4. Sets definidos en tie-break</h3>
+      <p>
+        El set se registra 7-6: el ganador suma 7 juegos y el perdedor 6. El marcador interno del
+        tie-break (7-0, 7-5, 10-8) queda como constancia pero no cambia el conteo de juegos.
+      </p>
+      <h3>5. Super muerte en lugar del tercer set</h3>
+      <p>
+        El match tie-break a 10 puntos cuenta como un set ganado/perdido, pero <strong>no suma juegos</strong>.
+        En un 6-4, 3-6, [10-7] los sets van 2-1 y los juegos sólo suman 9-10.
+      </p>
+      <h3>Desempate manual</h3>
+      <p>
+        En la tabla de cada grupo puedes asignar un nivel de desempate del 1 al 5. Cada nivel suma
+        0.0001 al puntaje y sirve para resolver empates exactos (por ejemplo, tras el sorteo presencial).
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="app-footer">
+  <p>Los datos viven sólo en este navegador. Usa <strong>Exportar</strong> para respaldar el torneo.</p>
+</footer>
+
+<script src="js/torneo-model.js"></script>
+<script src="js/torneo-datos.js"></script>
+<script src="js/torneo-store.js"></script>
+<script src="js/torneo-ui.js"></script>
+</body>
+</html>
