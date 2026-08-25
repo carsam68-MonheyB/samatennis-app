@@ -22,19 +22,35 @@
       partidos: [],
       desempates: {},
       cuadro: {},
-      clasificanPorGrupo: 2
+      // Cupos al cuadro final por posición de grupo: primeros, segundos, terceros...
+      clasifican: { cupos: ["todos", "todos"] }
     };
   }
 
   var estado = torneoVacio();
   var suscriptores = [];
 
+  /** Acepta la configuración nueva por cupos y migra la vieja (top-N por grupo). */
+  function normalizarClasifican(limpio, datos) {
+    var config = (datos && datos.clasifican) || limpio.clasifican;
+    if (config && Array.isArray(config.cupos) && config.cupos.length) {
+      return { cupos: config.cupos.slice() };
+    }
+    var previo = Number(datos && datos.clasificanPorGrupo);
+    if (previo > 0) {
+      var cupos = [];
+      for (var i = 0; i < previo; i++) cupos.push("todos");
+      return { cupos: cupos };
+    }
+    return { cupos: ["todos", "todos"] };
+  }
+
   function normalizarEstado(datos) {
     var base = torneoVacio();
     var limpio = Object.assign(base, datos || {});
     limpio.torneo = Object.assign(base.torneo, (datos && datos.torneo) || {});
     limpio.sorteo = Object.assign({ congelado: false, orden: [] }, (datos && datos.sorteo) || {});
-    limpio.clasificanPorGrupo = Number(limpio.clasificanPorGrupo) || 2;
+    limpio.clasifican = normalizarClasifican(limpio, datos);
     limpio.cabezas = limpio.cabezas || [];
     limpio.inscritos = limpio.inscritos || [];
     limpio.grupos = limpio.grupos || [];
@@ -159,6 +175,15 @@
     guardar();
   }
 
+  /** Cambia el cupo de una posición de grupo: número o "todos". */
+  function setCupo(posicion, valor) {
+    var cupos = (estado.clasifican.cupos || []).slice();
+    while (cupos.length < posicion) cupos.push(0);
+    cupos[posicion - 1] = valor === "todos" ? "todos" : Math.max(0, Number(valor) || 0);
+    estado.clasifican = { cupos: cupos };
+    guardar();
+  }
+
   function setDesempate(jugador, nivel) {
     var valor = Number(nivel) || 0;
     if (valor > 0) estado.desempates[jugador] = valor;
@@ -175,11 +200,11 @@
   // -------------------------------------------------------------- derivados
 
   function derivado() {
-    var opciones = { desempates: estado.desempates, clasifican: estado.clasificanPorGrupo };
-    var tablas = Model.tablasDeGrupos(estado.grupos, estado.partidos, opciones);
-    var ranking = Model.rankingGeneral(tablas);
+    var tablas = Model.tablasDeGrupos(estado.grupos, estado.partidos, { desempates: estado.desempates });
+    var ranking = Model.seleccionarClasificados(tablas, estado.clasifican);
     var cuadro = Model.resolverCuadro(Model.generarCuadro(ranking), estado.cuadro);
-    return { tablas: tablas, ranking: ranking, cuadro: cuadro };
+    var conteo = Model.conteoDeClasificados(tablas, estado.clasifican);
+    return { tablas: tablas, ranking: ranking, cuadro: cuadro, conteo: conteo };
   }
 
   // ------------------------------------------------------ archivo / reinicio
@@ -220,6 +245,7 @@
     regenerarCalendario: regenerarCalendario,
     partidoPorId: partidoPorId,
     setPartido: setPartido,
+    setCupo: setCupo,
     setDesempate: setDesempate,
     setResultadoCuadro: setResultadoCuadro,
     derivado: derivado,

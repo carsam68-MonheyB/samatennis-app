@@ -328,8 +328,63 @@
 
   // ---------------------------------------------------------------- grupos
 
+  var NOMBRES_POSICION = [
+    "Primeros lugares", "Segundos lugares", "Terceros lugares",
+    "Cuartos lugares", "Quintos lugares"
+  ];
+
+  /** Panel de cupos con la cuenta de clasificados y el cuadro que resulta. */
+  function pintarConfigClasifican(datos) {
+    var contenedor = $("#config-clasifican");
+    if (!contenedor) return;
+
+    var maxJugadores = (Store.estado().grupos || []).reduce(function (max, grupo) {
+      return Math.max(max, (grupo.jugadores || []).length);
+    }, 0);
+
+    if (!maxJugadores) {
+      contenedor.innerHTML = '<p class="nota">Arma los grupos para configurar la clasificación.</p>';
+      return;
+    }
+
+    var cupos = (Store.estado().clasifican.cupos || []).slice();
+    var filas = [];
+
+    for (var posicion = 1; posicion <= maxJugadores; posicion++) {
+      var detalle = datos.conteo.detalle[posicion - 1] || { disponibles: 0, entran: 0 };
+      var disponibles = detalle.disponibles;
+      var actual = cupos[posicion - 1];
+      if (actual == null) actual = 0;
+
+      var opciones = ['<option value="todos"' + (actual === "todos" ? " selected" : "") + ">Todos</option>"];
+      for (var n = 0; n <= disponibles; n++) {
+        opciones.push('<option value="' + n + '"' + (actual === n ? " selected" : "") + ">" + n + "</option>");
+      }
+
+      filas.push(
+        '<tr><td>' + escapar(NOMBRES_POSICION[posicion - 1] || "Posición " + posicion) + "</td>" +
+        '<td><select data-cupo="' + posicion + '">' + opciones.join("") + "</select></td>" +
+        '<td class="num">' + disponibles + "</td>" +
+        '<td class="num"><strong>' + detalle.entran + "</strong></td></tr>"
+      );
+    }
+
+    var total = datos.conteo.total;
+    var resumen = total < 2
+      ? "Se necesitan al menos 2 clasificados para armar el cuadro."
+      : "<strong>" + total + "</strong> clasificados → cuadro de <strong>" + datos.conteo.tamanoCuadro +
+        "</strong>" + (datos.conteo.byes ? " con <strong>" + datos.conteo.byes + "</strong> BYE" : ", sin BYE ✓");
+
+    contenedor.innerHTML =
+      '<div class="tabla-wrap"><table><thead><tr>' +
+      "<th>Posición de grupo</th><th>Cupo</th><th class=\"num\">Disponibles</th><th class=\"num\">Entran</th>" +
+      "</tr></thead><tbody>" + filas.join("") + "</tbody></table></div>" +
+      '<p class="resumen-clasifican">' + resumen + "</p>";
+  }
+
   function pintarGrupos() {
     var datos = Store.derivado();
+    pintarConfigClasifican(datos);
 
     $("#tablas-grupos").innerHTML = datos.tablas.length
       ? datos.tablas.map(function (tabla) {
@@ -418,8 +473,11 @@
 
     nota.innerHTML =
       "Cuadro de <strong>" + cuadro.tamano + "</strong> lugares con <strong>" + datos.ranking.length +
-      "</strong> clasificados y <strong>" + cuadro.byes + "</strong> BYE. " +
-      "Los mejores sembrados reciben el BYE y avanzan solos a la siguiente ronda.";
+      "</strong> clasificados" +
+      (cuadro.byes
+        ? " y <strong>" + cuadro.byes + "</strong> BYE. Los mejores sembrados reciben el BYE y " +
+          "avanzan solos a la siguiente ronda."
+        : ", sin BYE: todos arrancan en la primera ronda.");
 
     var columnas = cuadro.rondas.map(function (ronda, indiceRonda) {
       var esPrimeraRonda = indiceRonda === 0;
@@ -709,6 +767,14 @@
     $("#lista-partidos").addEventListener("input", alEscribirEnPartido);
     $("#lista-partidos").addEventListener("change", alCambiarEnPartido);
     $("#lista-partidos").addEventListener("click", alClicEnPartido);
+
+    // --- configuración de clasificados
+    $("#config-clasifican").addEventListener("change", function (evento) {
+      var select = evento.target.closest("[data-cupo]");
+      if (!select) return;
+      Store.setCupo(Number(select.dataset.cupo), select.value);
+      pintarGrupos();
+    });
 
     // --- grupos
     $("#tablas-grupos").addEventListener("change", function (evento) {

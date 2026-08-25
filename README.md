@@ -40,34 +40,66 @@ puntaje = % de sets ganados + % de juegos ganados + (desempate manual × 0.0001)
 - Si un jugador no tiene resultados, su puntaje es `desempate / 100`, igual que
   en el Excel.
 
-**Clasificados:** los dos primeros de cada grupo por puntaje. Cuando dos jugadores
-empatan exactamente, manda el enfrentamiento directo entre ellos (criterio 1 del
-reglamento) y después el desempate manual.
+**Clasificados:** se configuran por posición de grupo, en la pestaña *Grupos*:
 
-**Ranking del torneo:** todos los clasificados ordenados por puntaje. Ese orden
-es el número de siembra en el cuadro.
+```
+Posición de grupo    Cupo      Disponibles   Entran
+Primeros lugares     Todos          9           9
+Segundos lugares       5            9           5
+Terceros lugares       2            9           2
+────────────────────────────────────────────────────
+16 clasificados → cuadro de 16, sin BYE ✓
+```
+
+Los primeros de grupo normalmente pasan todos. De las demás posiciones eliges
+cuántos entran: se comparan **entre sí**, contra los de su misma posición en los
+otros grupos, ordenados por puntaje. El resumen se actualiza mientras mueves los
+números y te dice qué cuadro sale, para que puedas aterrizar en una potencia de 2
+y evitar los BYE.
+
+Cuando dos jugadores empatan exactamente, manda el enfrentamiento directo entre
+ellos (criterio 1 del reglamento) y después el desempate manual.
+
+**Ranking del torneo (siembra):** los clasificados se ordenan por jerarquía de
+posición, no por puntaje puro. Primero todos los primeros de grupo ordenados por
+puntaje entre ellos, luego los segundos que hayan clasificado, luego los terceros.
+Ganar el grupo siempre siembra más alto que un buen puntaje desde el segundo lugar.
 
 **Cuadro final:** el tamaño es la potencia de 2 inmediata superior al número de
 clasificados (18 clasificados → cuadro de 32). Las posiciones siguen el orden de
 siembra clásico (1-32, 17-16, 9-24, 25-8, …), que es el mismo de la hoja `Draw`.
-Los lugares que sobran son BYE y los reciben los mejores sembrados.
+Los lugares que sobran son BYE y los reciben los mejores sembrados. El cuadro se
+arma sólo por número de siembra: dos jugadores del mismo grupo pueden volver a
+encontrarse en la primera ronda.
 
-## Dos diferencias intencionales con el archivo original
+## Diferencias intencionales con el archivo original
 
 1. **Reparto de los BYE.** En la hoja `Draw` los dos clasificados peor rankeados
-   (17 y 18) quedaban fuera del cuadro y en su lugar los sembrados 13 a 16
-   jugaban una ronda previa. Aquí entran los 18 clasificados: el cuadro es de 32
-   con 14 BYE para los mejores sembrados, y los partidos de primera ronda son
-   15 vs 18 y 16 vs 17.
-2. **Siembra del cuadro desde el ranking.** La hoja `Draw` tomaba los mejores
+   quedaban fuera del cuadro y en su lugar los sembrados 13 a 16 jugaban una ronda
+   previa. Aquí entran todos los clasificados: el cuadro crece a la potencia de 2
+   siguiente y los BYE van a los mejores sembrados.
+2. **Siembra desde el ranking de clasificados.** La hoja `Draw` tomaba los mejores
    puntajes de *todos* los jugadores (`LARGE(Grupos!AS7:AS75, n)`), incluidos los
-   que no clasificaron. La app siembra con la lista de clasificados, que es lo
-   que la propia hoja `RKN` calcula.
+   que no clasificaron. La app siembra con la lista de clasificados.
+3. **Jerarquía de posición en la siembra.** El Excel ordenaba por puntaje puro,
+   así que un segundo de grupo podía sembrarse arriba de un primero. Aquí los
+   primeros de grupo van siempre antes que los segundos.
+4. **Cupos configurables.** El Excel clasificaba fijo a los dos primeros de cada
+   grupo. La app permite definir cuántos entran por posición.
 
-Lo demás reproduce el archivo al pie de la letra: con el torneo de ejemplo
+La estadística reproduce el archivo al pie de la letra: con el torneo de ejemplo
 cargado (los datos reales de CT2025 Primera Varonil) los 28 jugadores dan
-exactamente los mismos sets, juegos, puntajes y el mismo ranking del 1 al 18 que
-el Excel.
+exactamente los mismos sets, juegos y puntajes que el Excel. Eso está verificado
+en las pruebas.
+
+## Pruebas
+
+```
+node pruebas/modelo.prueba.js
+```
+
+Cubren la estadística contra las cifras del Excel, la selección de clasificados
+por cupos, la jerarquía de siembra y la resolución del cuadro completo.
 
 ## Archivos
 
@@ -78,6 +110,7 @@ el Excel.
 | `js/torneo-store.js` | Estado, persistencia en `localStorage`, exportar e importar. |
 | `js/torneo-ui.js` | Pestañas, captura de marcadores y pintado de las vistas. |
 | `css/tennis.css` | Estilos. |
+| `pruebas/modelo.prueba.js` | Pruebas del modelo, sin dependencias. |
 
 ## Uso
 

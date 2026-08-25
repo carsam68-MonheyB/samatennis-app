@@ -510,3 +510,16 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
   .marcador-grid { grid-template-columns: minmax(90px, 1fr) repeat(3, 50px); }
   .panel, .grupo-card { padding: 16px; }
 }
+
+/* ---------- Configuración de clasificados ---------- */
+#config-clasifican table { max-width: 520px; }
+#config-clasifican select { width: auto; min-width: 90px; padding: 5px 8px; }
+
+.resumen-clasifican {
+  margin: 14px 0 0;
+  padding: 12px 16px;
+  background: var(--surface-100);
+  border-left: 4px solid var(--ball-500);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+}

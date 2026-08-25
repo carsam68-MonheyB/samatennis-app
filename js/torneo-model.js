@@ -7,7 +7,7 @@
  *   Resultados       -> partidos[] y ganadorPartido()
  *   Grupos (AM:AS)   -> statsJugador() y tablaGrupo()
  *   Grupos (AU:AW)   -> clasificados de cada tabla
- *   RKN              -> rankingGeneral()
+ *   RKN              -> seleccionarClasificados()
  *   Draw             -> generarCuadro() / resolverCuadro()
  */
 (function (global) {
@@ -260,7 +260,6 @@
   function tablaGrupo(grupo, partidos, opciones) {
     var config = opciones || {};
     var desempates = config.desempates || {};
-    var clasifican = config.clasifican == null ? 2 : config.clasifican;
 
     var delGrupo = (partidos || []).filter(function (partido) {
       return partido.grupo === grupo.nombre;
@@ -295,9 +294,10 @@
       return uno.jugador.localeCompare(otro.jugador, "es");
     });
 
+    // Quién clasifica se decide después, comparando entre grupos.
     filas.forEach(function (fila, indice) {
       fila.posicion = indice + 1;
-      fila.clasificado = fila.pj > 0 && indice < clasifican;
+      fila.clasificado = false;
     });
 
     return filas;
@@ -310,30 +310,108 @@
     });
   }
 
-  // ------------------------------------------------------ 5. Ranking (RKN)
+  // ---------------------------------------- 5. Clasificados y ranking (RKN)
+
+  // Cupos por posición de grupo: índice 0 = primeros lugares, 1 = segundos, etc.
+  // Cada cupo es un número o "todos".
+  var CUPOS_POR_OMISION = ["todos", "todos"];
+
+  function cuposDeConfig(config) {
+    var cupos = (config && config.cupos) || CUPOS_POR_OMISION;
+    return cupos.map(function (cupo) {
+      if (cupo === "todos") return "todos";
+      var n = Number(cupo);
+      return isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    });
+  }
+
+  /** Orden entre jugadores que ocupan la misma posición en distintos grupos. */
+  function compararPorPuntaje(uno, otro) {
+    if (otro.puntaje !== uno.puntaje) return otro.puntaje - uno.puntaje;
+    if (otro.desempate !== uno.desempate) return otro.desempate - uno.desempate;
+    return uno.jugador.localeCompare(otro.jugador, "es");
+  }
 
   /**
-   * Hoja "RKN": los clasificados de todos los grupos ordenados por puntaje.
-   * Ese orden es el que siembra el cuadro final.
+   * Decide quién pasa al cuadro final y en qué orden se siembra.
+   *
+   * Los cupos se aplican por posición de grupo: todos los primeros lugares, los
+   * N mejores segundos, los N mejores terceros. Dentro de cada posición se
+   * compara el puntaje de todos los grupos entre sí.
+   *
+   * El orden de siembra respeta la jerarquía: primero los primeros lugares
+   * (ordenados por puntaje entre ellos), luego los segundos, luego los terceros.
+   * Ganar el grupo siempre vale más que un buen puntaje desde el segundo lugar.
+   *
+   * Marca `clasificado` en las filas de las tablas que recibe.
    */
-  function rankingGeneral(tablas) {
-    var clasificados = [];
+  function seleccionarClasificados(tablas, config) {
+    var cupos = cuposDeConfig(config);
+    var porPosicion = {};
+
     (tablas || []).forEach(function (tabla) {
       tabla.filas.forEach(function (fila) {
-        if (fila.clasificado) clasificados.push(fila);
+        fila.clasificado = false;
+        if (fila.pj === 0) return; // sin partidos jugados no se clasifica
+        porPosicion[fila.posicion] = (porPosicion[fila.posicion] || []).concat(fila);
       });
     });
 
-    clasificados.sort(function (uno, otro) {
-      if (otro.puntaje !== uno.puntaje) return otro.puntaje - uno.puntaje;
-      if (otro.desempate !== uno.desempate) return otro.desempate - uno.desempate;
-      if (uno.posicion !== otro.posicion) return uno.posicion - otro.posicion;
-      return uno.jugador.localeCompare(otro.jugador, "es");
+    var clasificados = [];
+    cupos.forEach(function (cupo, indice) {
+      if (!cupo) return;
+      var posicion = indice + 1;
+      var candidatos = (porPosicion[posicion] || []).slice().sort(compararPorPuntaje);
+      var elegidos = cupo === "todos" ? candidatos : candidatos.slice(0, cupo);
+      elegidos.forEach(function (fila) {
+        fila.clasificado = true;
+        clasificados.push(fila);
+      });
     });
 
     return clasificados.map(function (fila, indice) {
       return Object.assign({}, fila, { rkn: indice + 1 });
     });
+  }
+
+  /**
+   * Cuántos clasificarían con una configuración dada, sin recalcular nada.
+   * Sirve para la vista previa del panel de configuración.
+   */
+  function conteoDeClasificados(tablas, config) {
+    var cupos = cuposDeConfig(config);
+
+    // Cuántos jugadores hay en cada posición, contando todas las posiciones que
+    // existen en los grupos (no sólo las que ya tienen cupo configurado).
+    var disponiblesPorPosicion = {};
+    var maxPosicion = 0;
+    (tablas || []).forEach(function (tabla) {
+      tabla.filas.forEach(function (fila) {
+        if (fila.pj === 0) return;
+        disponiblesPorPosicion[fila.posicion] = (disponiblesPorPosicion[fila.posicion] || 0) + 1;
+        if (fila.posicion > maxPosicion) maxPosicion = fila.posicion;
+      });
+    });
+
+    var detalle = [];
+    for (var posicion = 1; posicion <= Math.max(maxPosicion, cupos.length); posicion++) {
+      var cupo = cupos[posicion - 1] == null ? 0 : cupos[posicion - 1];
+      var disponibles = disponiblesPorPosicion[posicion] || 0;
+      detalle.push({
+        posicion: posicion,
+        cupo: cupo,
+        disponibles: disponibles,
+        entran: cupo === "todos" ? disponibles : Math.min(cupo, disponibles)
+      });
+    }
+
+    var total = detalle.reduce(function (suma, fila) { return suma + fila.entran; }, 0);
+    return {
+      detalle: detalle,
+      total: total,
+      tamanoCuadro: total >= 2 ? tamanoCuadro(total) : 0,
+      byes: total >= 2 ? tamanoCuadro(total) - total : 0
+    };
   }
 
   // ---------------------------------------------------------- 6. Cuadro final
@@ -491,7 +569,8 @@
     enfrentamientoDirecto: enfrentamientoDirecto,
     tablaGrupo: tablaGrupo,
     tablasDeGrupos: tablasDeGrupos,
-    rankingGeneral: rankingGeneral,
+    seleccionarClasificados: seleccionarClasificados,
+    conteoDeClasificados: conteoDeClasificados,
     ordenSiembra: ordenSiembra,
     tamanoCuadro: tamanoCuadro,
     generarCuadro: generarCuadro,
