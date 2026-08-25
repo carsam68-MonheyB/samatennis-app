@@ -7,6 +7,7 @@
 
   var Model = window.TorneoModel;
   var Store = window.TorneoStore;
+  var Catalogo = window.TorneoCatalogo;
 
   var $ = function (selector, raiz) { return (raiz || document).querySelector(selector); };
   var $$ = function (selector, raiz) {
@@ -43,6 +44,66 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  /** Mensaje único cuando el torneo todavía no tiene categorías abiertas. */
+  function avisarSinCategoria() {
+    var aviso = '<div class="vacio-msg">Abre una categoría en la pestaña <strong>Categorías</strong>.</div>';
+    Array.prototype.forEach.call(arguments, function (selector) {
+      var nodo = $(selector);
+      if (nodo) nodo.innerHTML = aviso;
+    });
+  }
+
+  // ------------------------------------------------------------ categorías
+
+  function pintarCategorias() {
+    var abiertas = {};
+    Store.categorias().forEach(function (categoria) { abiertas[categoria.id] = categoria; });
+
+    var porRama = {};
+    Catalogo.catalogo().forEach(function (definicion) {
+      var llave = definicion.rama + " " + definicion.modalidad;
+      (porRama[llave] = porRama[llave] || []).push(definicion);
+    });
+
+    $("#catalogo-categorias").innerHTML = Object.keys(porRama).map(function (llave) {
+      var tarjetas = porRama[llave].map(function (definicion) {
+        var categoria = abiertas[definicion.id];
+        var resumen = categoria ? Store.resumenCategoria(categoria) : null;
+        var detalle = resumen
+          ? '<span class="cat-card__detalle">' + resumen.jugadores + " jugadores · " +
+            (resumen.sorteada ? resumen.grupos + " grupos · " + resumen.jugados + "/" + resumen.partidos + " partidos"
+                              : "sin sortear") + "</span>"
+          : '<span class="cat-card__detalle">Cerrada</span>';
+
+        return (
+          '<div class="cat-card' + (categoria ? " abierta" : "") + '">' +
+          '<label class="cat-card__nombre">' +
+          '<input type="checkbox" data-categoria="' + escapar(definicion.id) + '"' +
+          (categoria ? " checked" : "") + " /> " + escapar(definicion.subcategoria) + "</label>" +
+          detalle + "</div>"
+        );
+      }).join("");
+
+      return '<div class="cat-grupo"><h3>' + escapar(llave) + "</h3>" + tarjetas + "</div>";
+    }).join("");
+  }
+
+  /** Selector de categoría activa del encabezado. */
+  function pintarSelectorCategoria() {
+    var selector = $("#selector-categoria");
+    var abiertas = Store.categorias();
+    var activa = Store.categoria();
+
+    selector.hidden = !abiertas.length;
+    if (!abiertas.length) return;
+
+    selector.innerHTML = abiertas.map(function (categoria) {
+      return '<option value="' + escapar(categoria.id) + '"' +
+        (activa && categoria.id === activa.id ? " selected" : "") + ">" +
+        escapar(categoria.nombre) + "</option>";
+    }).join("");
+  }
+
   // ------------------------------------------------------------- jugadores
 
   function filaJugador(nombre, indice, tipo) {
@@ -57,23 +118,25 @@
   }
 
   function pintarJugadores() {
-    var estado = Store.estado();
-    $("#lista-cabezas").innerHTML = estado.cabezas.length
-      ? estado.cabezas.map(function (nombre, i) { return filaJugador(nombre, i, "cabeza"); }).join("")
+    var categoria = Store.categoria();
+    if (!categoria) return avisarSinCategoria("#lista-cabezas", "#lista-inscritos");
+    $("#lista-cabezas").innerHTML = categoria.cabezas.length
+      ? categoria.cabezas.map(function (nombre, i) { return filaJugador(nombre, i, "cabeza"); }).join("")
       : '<p class="nota">Aún no hay cabezas de grupo.</p>';
-    $("#lista-inscritos").innerHTML = estado.inscritos.length
-      ? estado.inscritos.map(function (nombre, i) { return filaJugador(nombre, i, "inscrito"); }).join("")
+    $("#lista-inscritos").innerHTML = categoria.inscritos.length
+      ? categoria.inscritos.map(function (nombre, i) { return filaJugador(nombre, i, "inscrito"); }).join("")
       : '<p class="nota">Aún no hay inscritos.</p>';
   }
 
   // ---------------------------------------------------------------- sorteo
 
   function pintarSorteo() {
-    var estado = Store.estado();
-    var orden = estado.sorteo.orden || [];
+    var categoria = Store.categoria();
+    if (!categoria) return avisarSinCategoria("#tabla-sorteo", "#grupos-armados");
+    var orden = categoria.sorteo.orden || [];
     var aviso = $("#aviso-sorteo");
 
-    if (estado.sorteo.congelado) {
+    if (categoria.sorteo.congelado) {
       aviso.hidden = false;
       aviso.textContent =
         "El sorteo está congelado. Si lo reabres y vuelves a sortear se rehacen los grupos; " +
@@ -93,8 +156,8 @@
         "</tbody></table></div>"
       : '<p class="nota">Presiona la pelota para hacer el sorteo.</p>';
 
-    $("#grupos-armados").innerHTML = estado.grupos.length
-      ? estado.grupos.map(function (grupo) {
+    $("#grupos-armados").innerHTML = categoria.grupos.length
+      ? categoria.grupos.map(function (grupo) {
           return (
             '<div class="grupo-card"><h3>' + escapar(grupo.nombre) + "</h3><ol>" +
             grupo.jugadores.map(function (jugador) {
@@ -276,7 +339,7 @@
     var partido;
 
     if (esCuadro) {
-      var guardado = Store.estado().cuadro[id] || {};
+      var guardado = (Store.categoria() || { cuadro: {} }).cuadro[id] || {};
       partido = {
         id: id,
         jugadorA: tarjeta.dataset.jugadorA,
@@ -302,17 +365,18 @@
   // ------------------------------------------------------------ resultados
 
   function pintarResultados() {
-    var estado = Store.estado();
+    var categoria = Store.categoria();
+    if (!categoria) return avisarSinCategoria("#filtro-grupos", "#lista-partidos");
 
     $("#filtro-grupos").innerHTML = [{ nombre: "todos", etiqueta: "Todos" }]
-      .concat(estado.grupos.map(function (grupo) { return { nombre: grupo.nombre, etiqueta: grupo.nombre }; }))
+      .concat(categoria.grupos.map(function (grupo) { return { nombre: grupo.nombre, etiqueta: grupo.nombre }; }))
       .map(function (opcion) {
         return '<button type="button" class="chip' + (opcion.nombre === grupoFiltrado ? " is-active" : "") +
           '" data-grupo="' + escapar(opcion.nombre) + '">' + escapar(opcion.etiqueta) + "</button>";
       })
       .join("");
 
-    var visibles = estado.partidos.filter(function (partido) {
+    var visibles = categoria.partidos.filter(function (partido) {
       return grupoFiltrado === "todos" || partido.grupo === grupoFiltrado;
     });
 
@@ -338,7 +402,9 @@
     var contenedor = $("#config-clasifican");
     if (!contenedor) return;
 
-    var maxJugadores = (Store.estado().grupos || []).reduce(function (max, grupo) {
+    var categoria = Store.categoria();
+    if (!categoria) return avisarSinCategoria("#config-clasifican");
+    var maxJugadores = (categoria.grupos || []).reduce(function (max, grupo) {
       return Math.max(max, (grupo.jugadores || []).length);
     }, 0);
 
@@ -347,7 +413,7 @@
       return;
     }
 
-    var cupos = (Store.estado().clasifican.cupos || []).slice();
+    var cupos = (categoria.clasifican.cupos || []).slice();
     var filas = [];
 
     for (var posicion = 1; posicion <= maxJugadores; posicion++) {
@@ -526,7 +592,7 @@
     });
     if (!partido || !partido.ladoA || !partido.ladoB) return;
 
-    var guardado = Store.estado().cuadro[id] || {};
+    var guardado = (Store.categoria() || { cuadro: {} }).cuadro[id] || {};
     var contenedor = $('[data-form="' + id + '"]');
     if (!contenedor) return;
     contenedor.hidden = false;
@@ -546,13 +612,15 @@
 
   function pintarInicio() {
     var estado = Store.estado();
+    var categoria = Store.categoria() || { cabezas: [], inscritos: [], grupos: [], partidos: [] };
     var datos = Store.derivado();
-    var jugados = estado.partidos.filter(function (partido) { return Model.ganadorPartido(partido); }).length;
+    var jugados = categoria.partidos.filter(function (partido) { return Model.ganadorPartido(partido); }).length;
 
     var tarjetas = [
-      { valor: estado.cabezas.length + estado.inscritos.length, etiqueta: "Jugadores" },
-      { valor: estado.grupos.length, etiqueta: "Grupos" },
-      { valor: jugados + " / " + estado.partidos.length, etiqueta: "Partidos de grupo jugados" },
+      { valor: Store.categorias().length, etiqueta: "Categorías abiertas" },
+      { valor: categoria.cabezas.length + categoria.inscritos.length, etiqueta: "Jugadores" },
+      { valor: categoria.grupos.length, etiqueta: "Grupos" },
+      { valor: jugados + " / " + categoria.partidos.length, etiqueta: "Partidos de grupo jugados" },
       { valor: datos.ranking.length, etiqueta: "Clasificados" },
       { valor: datos.cuadro ? datos.cuadro.tamano : "—", etiqueta: "Lugares en el cuadro" },
       { valor: datos.cuadro && datos.cuadro.campeon ? datos.cuadro.campeon.jugador : "—", etiqueta: "Campeón" }
@@ -564,7 +632,6 @@
     }).join("");
 
     $("#torneo-nombre").value = estado.torneo.nombre || "";
-    $("#torneo-categoria").value = estado.torneo.categoria || "";
     $("#torneo-sede").value = estado.torneo.sede || "";
     $("#torneo-inicio").value = estado.torneo.inicio || "";
     $("#torneo-fin").value = estado.torneo.fin || "";
@@ -572,12 +639,15 @@
 
   function pintarCabecera() {
     var torneo = Store.estado().torneo;
-    var partes = [torneo.nombre, torneo.categoria].filter(Boolean);
+    var categoria = Store.categoria();
+    var partes = [torneo.nombre, categoria && categoria.nombre].filter(Boolean);
     $("#brand-torneo").textContent = partes.join(" · ") || "Torneo sin nombre";
   }
 
   function render() {
     pintarCabecera();
+    pintarSelectorCategoria();
+    if (vistaActual === "categorias") pintarCategorias();
     if (vistaActual === "inicio") pintarInicio();
     if (vistaActual === "jugadores") pintarJugadores();
     if (vistaActual === "sorteo") pintarSorteo();
@@ -590,8 +660,9 @@
   // ------------------------------------------------------------- eventos
 
   function listaDe(tipo) {
-    var estado = Store.estado();
-    return tipo === "cabeza" ? estado.cabezas.slice() : estado.inscritos.slice();
+    var categoria = Store.categoria();
+    if (!categoria) return [];
+    return tipo === "cabeza" ? categoria.cabezas.slice() : categoria.inscritos.slice();
   }
 
   function guardarLista(tipo, lista) {
@@ -675,7 +746,6 @@
     $("#form-torneo").addEventListener("input", function () {
       Store.setDatosTorneo({
         nombre: $("#torneo-nombre").value,
-        categoria: $("#torneo-categoria").value,
         sede: $("#torneo-sede").value,
         inicio: $("#torneo-inicio").value,
         fin: $("#torneo-fin").value
@@ -721,12 +791,13 @@
 
     // --- sorteo
     $("#btn-sortear").addEventListener("click", function () {
-      var estado = Store.estado();
-      if (estado.sorteo.congelado) {
+      var categoria = Store.categoria();
+      if (!categoria) return window.alert("Abre una categoría antes de sortear.");
+      if (categoria.sorteo.congelado) {
         window.alert("El sorteo está congelado. Reábrelo para volver a sortear.");
         return;
       }
-      if (!estado.inscritos.length) {
+      if (!categoria.inscritos.length) {
         window.alert("Primero captura a los inscritos.");
         return;
       }
@@ -738,12 +809,13 @@
     });
 
     $("#btn-congelar").addEventListener("click", function () {
-      var estado = Store.estado();
-      if (!estado.sorteo.orden.length) {
+      var categoria = Store.categoria();
+      if (!categoria) return window.alert("Abre una categoría antes de sortear.");
+      if (!categoria.sorteo.orden.length) {
         window.alert("Haz el sorteo antes de congelarlo.");
         return;
       }
-      if (!estado.cabezas.length) {
+      if (!categoria.cabezas.length) {
         window.alert("Captura al menos una cabeza de grupo.");
         return;
       }
@@ -767,6 +839,33 @@
     $("#lista-partidos").addEventListener("input", alEscribirEnPartido);
     $("#lista-partidos").addEventListener("change", alCambiarEnPartido);
     $("#lista-partidos").addEventListener("click", alClicEnPartido);
+
+    // --- categorías
+    $("#catalogo-categorias").addEventListener("change", function (evento) {
+      var casilla = evento.target.closest("[data-categoria]");
+      if (!casilla) return;
+      var id = casilla.dataset.categoria;
+
+      if (casilla.checked) {
+        Store.abrirCategoria(id);
+      } else {
+        var categoria = Store.categorias().filter(function (cat) { return cat.id === id; })[0];
+        var resumen = categoria ? Store.resumenCategoria(categoria) : null;
+        var tieneDatos = resumen && (resumen.jugadores > 0 || resumen.jugados > 0);
+        if (tieneDatos && !window.confirm("Se borrarán los datos capturados de esta categoría. ¿Continuar?")) {
+          casilla.checked = true;
+          return;
+        }
+        Store.cerrarCategoria(id);
+      }
+      render();
+    });
+
+    $("#selector-categoria").addEventListener("change", function (evento) {
+      Store.setCategoriaActiva(evento.target.value);
+      grupoFiltrado = "todos";
+      render();
+    });
 
     // --- configuración de clasificados
     $("#config-clasifican").addEventListener("change", function (evento) {
@@ -800,7 +899,7 @@
       var url = URL.createObjectURL(blob);
       var enlace = document.createElement("a");
       enlace.href = url;
-      enlace.download = (estado.torneo.nombre || "torneo").replace(/[^\w-]+/g, "-").toLowerCase() + ".json";
+      enlace.download = (categoria.torneo.nombre || "torneo").replace(/[^\w-]+/g, "-").toLowerCase() + ".json";
       document.body.appendChild(enlace);
       enlace.click();
       document.body.removeChild(enlace);

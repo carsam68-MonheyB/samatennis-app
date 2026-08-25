@@ -8,6 +8,24 @@ Está construida a partir de la lógica del archivo
 dependencias ni compilación: se abre `index.html` en cualquier navegador
 y todo se guarda en `localStorage`.
 
+## Categorías
+
+Un torneo contiene varias **categorías**, y cada una es una competencia
+independiente: sus propios inscritos, cabezas de serie, sorteo, grupos,
+resultados, ranking y cuadro final. El catálogo del club son 18:
+
+| | Novatos | Tercera | Segunda | Primera | Libre |
+|---|---|---|---|---|---|
+| Varonil singles | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Varonil dobles | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Femenil singles | ✓ | ✓ | ✓ | ✓ | — |
+| Femenil dobles | ✓ | ✓ | ✓ | ✓ | — |
+
+En la pestaña *Categorías* marcas las que se juegan en ese torneo; el resto ni
+aparecen. El selector del encabezado cambia entre las abiertas y todas las demás
+pestañas trabajan sobre la que esté activa. En dobles la pareja se captura como
+un participante con nombre propio ("Samaniego / Cepeda").
+
 ## De dónde sale cada cosa
 
 | Hoja del Excel | Equivalente en la app |
@@ -106,6 +124,7 @@ por cupos, la jerarquía de siembra y la resolución del cuadro completo.
 | Archivo | Qué hace |
 | --- | --- |
 | `js/torneo-model.js` | La lógica: sorteo, estadística, tablas, ranking y cuadro. Sin DOM. |
+| `js/torneo-catalogo.js` | El catálogo fijo de 18 categorías del club. |
 | `js/torneo-datos.js` | Torneo de ejemplo con los datos reales del archivo original. |
 | `js/torneo-store.js` | Estado, persistencia en `localStorage`, exportar e importar. |
 | `js/torneo-ui.js` | Pestañas, captura de marcadores y pintado de las vistas. |
@@ -114,12 +133,13 @@ por cupos, la jerarquía de siembra y la resolución del cuadro completo.
 
 ## Uso
 
-1. **Jugadores.** Captura las cabezas de grupo (una por grupo) y los inscritos.
-2. **Sorteo.** Revuelve las veces que quieras y congela: se arman los grupos y el
+1. **Categorías.** Marca las que se van a jugar en el torneo.
+2. **Jugadores.** Captura las cabezas de grupo (una por grupo) y los inscritos de la categoría activa.
+3. **Sorteo.** Revuelve las veces que quieras y congela: se arman los grupos y el
    calendario de todos contra todos.
-3. **Resultados.** Anota cada set. Marca *super muerte* si el tercer set se juega
+4. **Resultados.** Anota cada set. Marca *super muerte* si el tercer set se juega
    como match tie-break a 10; el botón *W.O.* registra un default como 6-0, 6-0.
-4. **Grupos, Ranking y Cuadro.** Se recalculan solos conforme capturas.
+5. **Grupos, Ranking y Cuadro.** Se recalculan solos conforme capturas.
 
 **Exportar** descarga el torneo completo en JSON e **Importar** lo restaura: es la
 forma de respaldarlo o pasarlo a otra computadora, porque los datos viven sólo en

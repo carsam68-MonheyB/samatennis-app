@@ -22,6 +22,7 @@
         <small id="brand-torneo">Torneo</small>
       </span>
     </div>
+    <select id="selector-categoria" class="selector-categoria" aria-label="Categoría activa" hidden></select>
     <div class="app-header__actions">
       <button type="button" class="btn btn--ghost" id="btn-exportar">Exportar</button>
       <button type="button" class="btn btn--ghost" id="btn-importar">Importar</button>
@@ -32,6 +33,7 @@
   </div>
   <nav class="tabs" id="tabs">
     <button type="button" class="tab is-active" data-vista="inicio">Inicio</button>
+    <button type="button" class="tab" data-vista="categorias">Categorías</button>
     <button type="button" class="tab" data-vista="jugadores">Jugadores</button>
     <button type="button" class="tab" data-vista="sorteo">Sorteo</button>
     <button type="button" class="tab" data-vista="resultados">Resultados</button>
@@ -57,9 +59,6 @@
         <label>Nombre del torneo
           <input type="text" id="torneo-nombre" placeholder="Copa Tenis 2025" />
         </label>
-        <label>Categoría
-          <input type="text" id="torneo-categoria" placeholder="Primera Varonil" />
-        </label>
         <label>Sede
           <input type="text" id="torneo-sede" placeholder="Club de Tenis" />
         </label>
@@ -83,6 +82,19 @@
         <li><strong>Grupos.</strong> Se calculan sets y juegos ganados, sus porcentajes y el puntaje que define a los clasificados.</li>
         <li><strong>Ranking y cuadro.</strong> Los clasificados se ordenan por puntaje y siembran el cuadro final.</li>
       </ol>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------ Categorías -->
+  <section class="vista" id="vista-categorias">
+    <div class="panel">
+      <h2>Categorías del torneo</h2>
+      <p class="nota">
+        Marca las que se van a jugar en este torneo. Cada categoría es una competencia
+        independiente: sus propios inscritos, cabezas de serie, sorteo, grupos y cuadro final.
+        Cambia entre ellas con el selector del encabezado.
+      </p>
+      <div id="catalogo-categorias" class="catalogo"></div>
     </div>
   </section>
 
@@ -230,6 +242,7 @@
 </footer>
 
 <script src="js/torneo-model.js"></script>
+<script src="js/torneo-catalogo.js"></script>
 <script src="js/torneo-datos.js"></script>
 <script src="js/torneo-store.js"></script>
 <script src="js/torneo-ui.js"></script>

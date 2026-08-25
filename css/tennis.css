@@ -523,3 +523,57 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
 }
+
+/* ---------- Categorías ---------- */
+.selector-categoria {
+  width: auto;
+  max-width: 260px;
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--white);
+  border-color: rgba(255, 255, 255, 0.3);
+  font-weight: 600;
+}
+.selector-categoria option { color: var(--ink-900); }
+
+.catalogo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.cat-grupo h3 {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-400);
+}
+
+.cat-card {
+  border: 1px solid var(--line-200);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--white);
+}
+
+.cat-card.abierta { border-color: var(--ball-600); background: rgba(214, 243, 74, 0.12); }
+
+.cat-card__nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+.cat-card__nombre input { width: auto; }
+
+.cat-card__detalle {
+  display: block;
+  margin-top: 4px;
+  padding-left: 24px;
+  font-size: 0.78rem;
+  color: var(--ink-400);
+}
