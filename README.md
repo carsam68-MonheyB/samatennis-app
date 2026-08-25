@@ -110,6 +110,41 @@ cargado (los datos reales de CT2025 Primera Varonil) los 28 jugadores dan
 exactamente los mismos sets, juegos y puntajes que el Excel. Eso está verificado
 en las pruebas.
 
+## Torneo en la nube (Firebase)
+
+La app funciona sola contra `localStorage`. Conectada a Firebase, además:
+
+- **Cualquiera que abra la liga ve el torneo en vivo**, sin cuenta ni contraseña.
+- **Sólo el dueño y los administradores del torneo capturan.** Quien no tiene
+  permiso ve la app en modo consulta: los campos aparecen bloqueados y los
+  botones de captura no se muestran.
+- **Los administradores se asignan por torneo.** El del torneo de 2025 no puede
+  tocar el de 2026 aunque conserve su cuenta.
+- **Cada partido de grupo es un documento aparte**, para que dos administradores
+  puedan capturar al mismo tiempo en canchas distintas sin pisarse.
+- **Si se cae la red**, el SDK sigue mostrando lo último y encola las escrituras.
+
+### Puesta en marcha
+
+1. Consola de Firebase → **Authentication** → Email/Password activado, y los
+   administradores dados de alta en la pestaña *Users*.
+2. **Firestore Database** creada en modo producción.
+3. **Firestore → Reglas**: pega el contenido de `firebase/reglas-firestore.txt`
+   y publica. Sin esto la base rechaza todo.
+4. En la app, pestaña *Inicio* → **Torneo en la nube**: escribe un identificador
+   (`copa-2026`) y presiona *Subir este torneo a la nube*.
+5. Ya con el torneo arriba, aparece el cuadro de **administradores**: un correo
+   por línea. Sólo el dueño puede cambiar esa lista.
+
+El correo del dueño está en dos lugares y deben coincidir: `CORREO_DUENO` en
+`js/torneo-nube.js` y la función `esDueno()` de las reglas.
+
+### Qué pasa si Firebase no responde
+
+Nada grave: la app cae a modo local, el encabezado dice *"Sin nube · sólo este
+navegador"* y todo sigue editable como siempre. **Exportar** sigue siendo el
+respaldo de fin de jornada.
+
 ## Pruebas
 
 ```
@@ -128,6 +163,9 @@ por cupos, la jerarquía de siembra y la resolución del cuadro completo.
 | `js/torneo-datos.js` | Torneo de ejemplo con los datos reales del archivo original. |
 | `js/torneo-store.js` | Estado, persistencia en `localStorage`, exportar e importar. |
 | `js/torneo-ui.js` | Pestañas, captura de marcadores y pintado de las vistas. |
+| `js/torneo-nube.js` | Conexión con Firebase: sesión y sincronización en vivo. |
+| `js/torneo-sesion.js` | Une la nube con la app: permisos, panel y modo consulta. |
+| `firebase/reglas-firestore.txt` | Reglas de seguridad para pegar en la consola. |
 | `css/tennis.css` | Estilos. |
 | `pruebas/modelo.prueba.js` | Pruebas del modelo, sin dependencias. |
 

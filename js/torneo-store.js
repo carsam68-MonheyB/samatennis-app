@@ -43,7 +43,9 @@
 
   function torneoVacio() {
     return {
+      torneoId: "",          // id del documento en la nube; vacío = sólo local
       torneo: { nombre: "Nuevo torneo", sede: "", inicio: "", fin: "" },
+      admins: [],            // correos que pueden capturar en este torneo
       categorias: [],
       categoriaActiva: ""
     };
@@ -108,6 +110,10 @@
 
     limpio.torneo = Object.assign(limpio.torneo, origen.torneo || {});
     delete limpio.torneo.categoria; // antes era texto libre; ahora son categorías reales
+    limpio.torneoId = origen.torneoId || "";
+    limpio.admins = (origen.admins || []).map(function (correo) {
+      return String(correo).trim().toLowerCase();
+    }).filter(Boolean);
 
     if (Array.isArray(origen.categorias)) {
       limpio.categorias = origen.categorias.map(normalizarCategoria);
@@ -139,13 +145,32 @@
     return estado;
   }
 
-  function guardar() {
+  /**
+   * Guarda en localStorage y avisa a los suscriptores QUÉ cambió, para que la
+   * capa de nube escriba sólo el documento afectado en vez de todo el torneo.
+   *
+   * cambio: { tipo: "torneo" }
+   *       | { tipo: "categoria" | "calendario" | "categoriaBorrada", categoriaId }
+   *       | { tipo: "partido", categoriaId, partidoId }
+   */
+  function guardar(cambio) {
     try {
       if (global.localStorage) global.localStorage.setItem(LLAVE, JSON.stringify(estado));
     } catch (error) {
       console.warn("No se pudo guardar el torneo:", error);
     }
-    suscriptores.forEach(function (fn) { fn(estado); });
+    var descriptor = cambio || { tipo: "torneo" };
+    suscriptores.forEach(function (fn) { fn(estado, descriptor); });
+  }
+
+  function idActivo() {
+    var cat = categoria();
+    return cat ? cat.id : "";
+  }
+
+  /** Cambio que afecta a toda la categoría activa. */
+  function guardarCategoria(tipo) {
+    guardar({ tipo: tipo || "categoria", categoriaId: idActivo() });
   }
 
   function suscribir(fn) {
@@ -185,7 +210,7 @@
       return orden.indexOf(uno.id) - orden.indexOf(otro.id);
     });
     if (!estado.categoriaActiva) estado.categoriaActiva = id;
-    guardar();
+    guardar({ tipo: "categoria", categoriaId: id });
   }
 
   function cerrarCategoria(id) {
@@ -193,7 +218,7 @@
     if (estado.categoriaActiva === id) {
       estado.categoriaActiva = (estado.categorias[0] || {}).id || "";
     }
-    guardar();
+    guardar({ tipo: "categoriaBorrada", categoriaId: id });
   }
 
   /** Resumen de avance de una categoría, para la pantalla de categorías. */
@@ -216,14 +241,44 @@
     var cat = categoria();
     if (!cat) return;
     cat.cabezas = (lista || []).map(Model.normalizar).filter(Boolean);
-    guardar();
+    guardarCategoria();
   }
 
   function setInscritos(lista) {
     var cat = categoria();
     if (!cat) return;
     cat.inscritos = (lista || []).map(Model.normalizar).filter(Boolean);
-    guardar();
+    guardarCategoria();
+  }
+
+  function setAdmins(correos) {
+    estado.admins = (correos || []).map(function (correo) {
+      return String(correo).trim().toLowerCase();
+    }).filter(Boolean);
+    guardar({ tipo: "torneo" });
+  }
+
+  function setTorneoId(id) {
+    estado.torneoId = id || "";
+    guardar({ tipo: "torneo" });
+  }
+
+  /**
+   * Reemplaza el estado con lo que llegó de la nube. No dispara escrituras:
+   * el suscriptor de nube ignora los cambios marcados como remotos.
+   */
+  function aplicarRemoto(datos) {
+    var activa = estado.categoriaActiva;
+    estado = normalizarEstado(datos);
+    if (activa && estado.categorias.some(function (cat) { return cat.id === activa; })) {
+      estado.categoriaActiva = activa;
+    }
+    try {
+      if (global.localStorage) global.localStorage.setItem(LLAVE, JSON.stringify(estado));
+    } catch (error) {
+      console.warn("No se pudo guardar el torneo:", error);
+    }
+    suscriptores.forEach(function (fn) { fn(estado, { tipo: "remoto" }); });
   }
 
   function setDatosTorneo(datos) {
@@ -237,7 +292,7 @@
     var cat = categoria();
     if (!cat) return [];
     cat.sorteo = { congelado: false, orden: Model.sortear(cat.inscritos) };
-    guardar();
+    guardarCategoria();
     return cat.sorteo.orden;
   }
 
@@ -254,7 +309,7 @@
     var cat = categoria();
     if (!cat) return;
     cat.sorteo.congelado = false;
-    guardar();
+    guardarCategoria();
   }
 
   // ---------------------------------------------------------------- partidos
@@ -296,7 +351,7 @@
     });
 
     cat.partidos = nuevos;
-    guardar();
+    guardar({ tipo: "calendario", categoriaId: cat.id });
   }
 
   function partidoPorId(id) {
@@ -309,7 +364,7 @@
     var partido = partidoPorId(id);
     if (!partido) return;
     Object.assign(partido, cambios || {});
-    guardar();
+    guardar({ tipo: "partido", categoriaId: idActivo(), partidoId: id });
   }
 
   /** Cambia el cupo de una posición de grupo: número o "todos". */
@@ -320,7 +375,7 @@
     while (cupos.length < posicion) cupos.push(0);
     cupos[posicion - 1] = valor === "todos" ? "todos" : Math.max(0, Number(valor) || 0);
     cat.clasifican = { cupos: cupos };
-    guardar();
+    guardarCategoria();
   }
 
   function setDesempate(jugador, nivel) {
@@ -329,7 +384,7 @@
     var valor = Number(nivel) || 0;
     if (valor > 0) cat.desempates[jugador] = valor;
     else delete cat.desempates[jugador];
-    guardar();
+    guardarCategoria();
   }
 
   function setResultadoCuadro(id, resultado) {
@@ -337,7 +392,7 @@
     if (!cat) return;
     if (resultado && resultado.sets && resultado.sets.length) cat.cuadro[id] = resultado;
     else delete cat.cuadro[id];
-    guardar();
+    guardarCategoria();
   }
 
   // --------------------------------------------------------------- derivados
@@ -390,6 +445,9 @@
     cerrarCategoria: cerrarCategoria,
     resumenCategoria: resumenCategoria,
     setDatosTorneo: setDatosTorneo,
+    setAdmins: setAdmins,
+    setTorneoId: setTorneoId,
+    aplicarRemoto: aplicarRemoto,
     setCabezas: setCabezas,
     setInscritos: setInscritos,
     sortear: sortear,

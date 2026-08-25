@@ -111,7 +111,7 @@
       '<div class="fila-jugador">' +
       "<span>" + (indice + 1) + "</span>" +
       '<input type="text" value="' + escapar(nombre) + '" data-tipo="' + tipo + '" data-indice="' + indice + '" />' +
-      '<button type="button" class="btn-icono" data-quitar="' + tipo + '" data-indice="' + indice +
+      '<button type="button" class="btn-icono" data-solo-admin data-quitar="' + tipo + '" data-indice="' + indice +
       '" aria-label="Quitar">&times;</button>' +
       "</div>"
     );
@@ -211,9 +211,9 @@
       '<div class="partido__acciones">' +
       '<label class="check-super"><input type="checkbox" data-super="1"' + (partido.superMuerte ? " checked" : "") +
       " /> Tercer set en super muerte</label>" +
-      '<button type="button" class="btn btn--sm btn--ghost" data-wo="a">W.O. ' + escapar(partido.jugadorA) + "</button>" +
-      '<button type="button" class="btn btn--sm btn--ghost" data-wo="b">W.O. ' + escapar(partido.jugadorB) + "</button>" +
-      '<button type="button" class="btn btn--sm btn--ghost" data-limpiar="1">Limpiar</button>' +
+      '<button type="button" class="btn btn--sm btn--ghost" data-solo-admin data-wo="a">W.O. ' + escapar(partido.jugadorA) + "</button>" +
+      '<button type="button" class="btn btn--sm btn--ghost" data-solo-admin data-wo="b">W.O. ' + escapar(partido.jugadorB) + "</button>" +
+      '<button type="button" class="btn btn--sm btn--ghost" data-solo-admin data-limpiar="1">Limpiar</button>' +
       (esCuadro ? '<button type="button" class="btn btn--sm" data-cerrar="1">Guardar y cerrar</button>' : "") +
       "</div>"
     );
@@ -552,7 +552,7 @@
         var clase = partido.ganador ? "resuelta" : jugable ? "jugable" : "";
         var marcador = partido.marcador ? '<div class="llave__marcador">' + escapar(partido.marcador) + "</div>" : "";
         var boton = jugable
-          ? '<div class="llave__editar"><button type="button" class="btn btn--sm btn--ghost" data-llave="' +
+          ? '<div class="llave__editar" data-solo-admin><button type="button" class="btn btn--sm btn--ghost" data-llave="' +
             escapar(partido.id) + '">' + (partido.ganador ? "Editar marcador" : "Capturar marcador") + "</button></div>"
           : "";
         var ganaA = partido.ganador && partido.ladoA && partido.ganador.jugador === partido.ladoA.jugador;
@@ -644,6 +644,24 @@
     $("#brand-torneo").textContent = partes.join(" · ") || "Torneo sin nombre";
   }
 
+  var soloLectura = false;
+
+  /** Deja la app en modo consulta para quien no puede capturar. */
+  function aplicarModoLectura() {
+    document.body.classList.toggle("solo-lectura", soloLectura);
+    $$(".app-main input, .app-main select, .app-main textarea").forEach(function (campo) {
+      campo.disabled = soloLectura;
+    });
+    $$("[data-solo-admin]").forEach(function (nodo) {
+      nodo.hidden = soloLectura;
+    });
+  }
+
+  function setSoloLectura(valor) {
+    soloLectura = !!valor;
+    aplicarModoLectura();
+  }
+
   function render() {
     pintarCabecera();
     pintarSelectorCategoria();
@@ -655,6 +673,7 @@
     if (vistaActual === "grupos") pintarGrupos();
     if (vistaActual === "ranking") pintarRanking();
     if (vistaActual === "cuadro") pintarCuadro();
+    aplicarModoLectura();
   }
 
   // ------------------------------------------------------------- eventos
@@ -937,6 +956,12 @@
       render();
     });
   }
+
+  window.TorneoUI = {
+    render: render,
+    setSoloLectura: setSoloLectura,
+    escapar: escapar
+  };
 
   document.addEventListener("DOMContentLoaded", function () {
     Store.cargar();

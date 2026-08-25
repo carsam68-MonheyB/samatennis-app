@@ -1,0 +1,60 @@
+// Reglas de seguridad de Firestore para Sama Tennis App.
+//
+// Pégalas en la consola de Firebase:
+//   Firestore Database → pestaña "Reglas" (Rules) → reemplaza todo → Publicar
+//
+// Qué hacen:
+//   - Cualquiera puede LEER: el torneo es público, como el cuadro pegado en el club.
+//   - Sólo el dueño y los administradores del torneo pueden ESCRIBIR.
+//   - Sólo el dueño puede crear o borrar torneos y cambiar la lista de administradores.
+//
+// Los permisos se aplican aquí, en el servidor. Aunque alguien abra el código de
+// la página —que es público— no puede escribir nada sin ser administrador.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function correo() {
+      return request.auth != null && request.auth.token.email != null
+        ? request.auth.token.email.lower()
+        : '';
+    }
+
+    // El dueño maestro. Si cambias de cuenta, cambia también este correo
+    // y el de CORREO_DUENO en js/torneo-nube.js.
+    function esDueno() {
+      return correo() == 'carsam68@gmail.com';
+    }
+
+    function adminsDe(torneoId) {
+      return get(/databases/$(database)/documents/torneos/$(torneoId)).data.admins;
+    }
+
+    function esAdmin(torneoId) {
+      return request.auth != null && (esDueno() || correo() in adminsDe(torneoId));
+    }
+
+    match /torneos/{torneoId} {
+      allow read: if true;
+      allow create, delete: if esDueno();
+
+      // Un administrador puede editar el torneo, pero no repartirse permisos:
+      // cambiar la lista de admins queda reservado al dueño.
+      allow update: if esDueno()
+        || (esAdmin(torneoId)
+            && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['admins']));
+
+      match /categorias/{categoriaId} {
+        allow read: if true;
+        allow write: if esAdmin(torneoId);
+
+        match /partidos/{partidoId} {
+          allow read: if true;
+          allow write: if esAdmin(torneoId);
+        }
+      }
+    }
+  }
+}

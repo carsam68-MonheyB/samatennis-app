@@ -24,10 +24,13 @@
     </div>
     <select id="selector-categoria" class="selector-categoria" aria-label="Categoría activa" hidden></select>
     <div class="app-header__actions">
+      <span class="sesion__estado" id="sesion-estado">Conectando…</span>
+      <button type="button" class="btn btn--ghost" id="btn-entrar" hidden>Iniciar sesión</button>
+      <button type="button" class="btn btn--ghost" id="btn-salir" hidden>Salir</button>
       <button type="button" class="btn btn--ghost" id="btn-exportar">Exportar</button>
-      <button type="button" class="btn btn--ghost" id="btn-importar">Importar</button>
-      <button type="button" class="btn btn--ghost" id="btn-ejemplo">Torneo de ejemplo</button>
-      <button type="button" class="btn btn--ghost btn--danger" id="btn-nuevo">Nuevo torneo</button>
+      <button type="button" class="btn btn--ghost" data-solo-admin id="btn-importar">Importar</button>
+      <button type="button" class="btn btn--ghost" data-solo-admin id="btn-ejemplo">Torneo de ejemplo</button>
+      <button type="button" class="btn btn--ghost btn--danger" data-solo-admin id="btn-nuevo">Nuevo torneo</button>
       <input type="file" id="input-importar" accept="application/json" hidden />
     </div>
   </div>
@@ -43,6 +46,24 @@
     <button type="button" class="tab" data-vista="reglamento">Reglamento</button>
   </nav>
 </header>
+
+<dialog id="dialogo-sesion" class="dialogo">
+  <form id="form-sesion" method="dialog">
+    <h2>Iniciar sesión</h2>
+    <p class="nota">Sólo los administradores del torneo necesitan entrar. Para consultar no hace falta.</p>
+    <label>Correo
+      <input type="email" id="sesion-correo" autocomplete="username" required />
+    </label>
+    <label>Contraseña
+      <input type="password" id="sesion-clave" autocomplete="current-password" required />
+    </label>
+    <p class="error" id="error-sesion"></p>
+    <div class="dialogo__acciones">
+      <button type="button" class="btn btn--ghost" id="btn-cerrar-sesion-dialogo">Cancelar</button>
+      <button type="submit" class="btn">Entrar</button>
+    </div>
+  </form>
+</dialog>
 
 <main class="app-main">
 
@@ -72,6 +93,11 @@
     </div>
 
     <div class="kpis" id="kpis"></div>
+
+    <div class="panel">
+      <h2>Torneo en la nube</h2>
+      <div id="panel-nube"></div>
+    </div>
 
     <div class="panel">
       <h2>Cómo funciona</h2>
@@ -246,5 +272,7 @@
 <script src="js/torneo-datos.js"></script>
 <script src="js/torneo-store.js"></script>
 <script src="js/torneo-ui.js"></script>
+<script type="module" src="js/torneo-nube.js"></script>
+<script src="js/torneo-sesion.js"></script>
 </body>
 </html>
