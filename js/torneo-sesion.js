@@ -152,8 +152,7 @@
 
     if (torneoId) {
       if (pie) {
-        pie.innerHTML = "El torneo <strong>" + escapar(torneoId) + "</strong> vive en la nube: " +
-          "todos lo ven en vivo. <strong>Exportar</strong> sigue sirviendo como respaldo.";
+        pie.innerHTML = "Revisa todos los Resultados en Tiempo Real.";
       }
       if (hero) {
         hero.innerHTML = "Sorteo de grupos, captura de resultados set por set, porcentajes de sets y " +
