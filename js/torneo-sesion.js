@@ -18,6 +18,9 @@
     return (UI && UI.escapar ? UI.escapar : String)(texto);
   }
 
+  // Si el dueño escribe otro identificador, se respeta aunque el panel se repinte.
+  var idEscritoAMano = null;
+
   /** El torneo puede venir en la liga: …/?torneo=copa-2025 */
   function torneoDeLaLiga() {
     try {
@@ -182,12 +185,18 @@
     );
 
     if (estadoNube.esDueno) {
+      var sugerido = Store.identificadorDesde(estado.torneo && estado.torneo.nombre);
+      var propuesto = idEscritoAMano !== null ? idEscritoAMano : sugerido;
+
       filas.push(
         '<div class="nube-fila">' +
-        '<input type="text" id="nuevo-torneo-id" placeholder="copa-2026" />' +
+        '<input type="text" id="nuevo-torneo-id" placeholder="copa-2026" value="' +
+        escapar(propuesto) + '" />' +
         '<button type="button" class="btn btn--sm" id="btn-subir-torneo">Subir este torneo a la nube</button>' +
         "</div>" +
-        '<p class="nota">El identificador va en la liga y no se puede cambiar después: usa minúsculas y guiones.</p>'
+        '<p class="nota">Este es el identificador del torneo, no su nombre: se arma solo con el nombre ' +
+        "que capturaste, va en la liga que compartes y ya no se puede cambiar. " +
+        "Cámbialo sólo si quieres otra dirección.</p>"
       );
 
       if (estado.torneoId) {
@@ -398,6 +407,12 @@
       refrescar();
     });
 
+    $("#panel-nube").addEventListener("input", function (evento) {
+      if (evento.target && evento.target.id === "nuevo-torneo-id") {
+        idEscritoAMano = evento.target.value;
+      }
+    });
+
     $("#panel-nube").addEventListener("click", function (evento) {
       var boton = evento.target.closest("button");
       if (!boton) return;
@@ -414,13 +429,15 @@
       }
 
       if (boton.id === "btn-subir-torneo") {
-        var nuevo = ($("#nuevo-torneo-id").value || "").trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-");
-        if (!nuevo) return window.alert("Escribe un identificador para el torneo.");
+        var estadoLocal = Store.estado();
+        var nuevo = Store.identificadorDesde($("#nuevo-torneo-id").value) ||
+          Store.identificadorDesde(estadoLocal.torneo && estadoLocal.torneo.nombre);
+        if (!nuevo) return window.alert("Primero ponle nombre al torneo en la pestaña Datos.");
         if (!window.confirm('Se va a subir el torneo local con el identificador "' + nuevo + '". ¿Continuar?')) return;
 
-        var estado = Store.estado();
-        nube.subirTorneo(nuevo, estado)
+        nube.subirTorneo(nuevo, estadoLocal)
           .then(function () {
+            idEscritoAMano = null;
             Store.setTorneoId(nuevo);
             abrirTorneo(nuevo);
             window.alert("Torneo subido.");

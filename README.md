@@ -169,8 +169,12 @@ torneo que le asignaron.
 2. **Firestore Database** creada en modo producción.
 3. **Firestore → Reglas**: pega el contenido de `firebase/reglas-firestore.txt`
    y publica. Sin esto la base rechaza todo.
-4. En la app, pestaña *Inicio* → **Torneo en la nube**: escribe un identificador
-   (`copa-2026`) y presiona *Subir este torneo a la nube*.
+4. En la app, pestaña *Inicio* → **Torneo en la nube**: el identificador viene
+   ya propuesto a partir del nombre del torneo (*Copa Otoño 2026* →
+   `copa-otono-2026`); presiona *Subir este torneo a la nube*. El nombre es el
+   texto que se ve y se puede corregir cuando quieras; el identificador es la
+   dirección que va en la liga (`?torneo=copa-otono-2026`) y ya no cambia, así
+   que sólo edítalo si quieres otra dirección.
 5. Ya con el torneo arriba, aparece el cuadro de **administradores**: un correo
    por línea. Sólo el dueño puede cambiar esa lista.
 

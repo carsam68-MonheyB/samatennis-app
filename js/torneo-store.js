@@ -429,6 +429,20 @@
     guardar();
   }
 
+  /*
+   * El identificador del torneo no es un segundo nombre: es su dirección.
+   * Va en la liga que se comparte (…/?torneo=copa-2025) y ya no se puede
+   * cambiar, por eso se arma solo con el nombre en vez de pedirlo aparte.
+   */
+  function identificadorDesde(texto) {
+    return String(texto || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
   function nuevoTorneo() {
     estado = torneoVacio();
     guardar();
@@ -449,6 +463,7 @@
     setDatosTorneo: setDatosTorneo,
     setAdmins: setAdmins,
     setTorneoId: setTorneoId,
+    identificadorDesde: identificadorDesde,
     aplicarRemoto: aplicarRemoto,
     setCabezas: setCabezas,
     setInscritos: setInscritos,
