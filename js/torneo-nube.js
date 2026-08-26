@@ -321,9 +321,11 @@ async function escribir(cambio, estadoApp) {
       }
     }
   } catch (error) {
+    // Quien llama necesita enterarse para poder avisarle a la persona.
     console.warn("No se pudo guardar en la nube:", error);
     estado.motivo = "No se pudo guardar en la nube: " + (error && error.message ? error.message : error);
     avisar();
+    throw error;
   }
 }
 

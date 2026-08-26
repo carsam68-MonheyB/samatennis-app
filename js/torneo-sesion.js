@@ -34,6 +34,37 @@
     return !estadoNube.puedeEditar;
   }
 
+  // --------------------------------------------------- confirmación al guardar
+
+  var temporizadorAviso = null;
+
+  /**
+   * La app guarda sola al salir de cada campo, así que hace falta decirlo:
+   * sin esto la persona no sabe si su captura quedó registrada.
+   */
+  function avisoGuardado(situacion, detalle) {
+    var caja = $("#aviso-guardado");
+    if (!caja) return;
+
+    window.clearTimeout(temporizadorAviso);
+    caja.hidden = false;
+    caja.className = "aviso-guardado aviso-guardado--" + situacion;
+
+    if (situacion === "guardando") {
+      caja.textContent = "Guardando…";
+      return;
+    }
+
+    if (situacion === "error") {
+      // Este se queda hasta que la persona vuelva a intentar: es un problema real.
+      caja.textContent = "No se guardó: " + (detalle || "revisa tu conexión");
+      return;
+    }
+
+    caja.textContent = situacion === "local" ? "Guardado ✓" : "Guardado y sincronizado ✓";
+    temporizadorAviso = window.setTimeout(function () { caja.hidden = true; }, 2500);
+  }
+
   // ------------------------------------------------------------- encabezado
 
   function pintarSesion() {
@@ -306,8 +337,17 @@
 
     // Cada cambio local que no venga de la nube se escribe en el documento afectado.
     Store.suscribir(function (estado, cambio) {
-      if (!nube || cambio.tipo === "remoto" || !estado.torneoId) return;
-      nube.escribir(cambio, estado);
+      if (cambio.tipo === "remoto") return;
+
+      if (!nube || !estado.torneoId || !estadoNube.puedeEditar) {
+        avisoGuardado("local");
+        return;
+      }
+
+      avisoGuardado("guardando");
+      nube.escribir(cambio, estado)
+        .then(function () { avisoGuardado("nube"); })
+        .catch(function (falla) { avisoGuardado("error", falla && falla.message); });
     });
   }
 
