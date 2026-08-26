@@ -1,23 +1,30 @@
 /* Draws Tennis — estilos de la app de torneo */
 
+/*
+ * Paleta "cancha dura": azul marino de la superficie con el amarillo de la
+ * pelota como acento. Se eligió comparando cuatro paletas sobre la app real
+ * (verde cancha, azul cancha dura, arcilla y grafito): es la que hace resaltar
+ * más el amarillo y la que se lee como tenis de un vistazo.
+ */
 :root {
-  --court-900: #0b2a20;
-  --court-800: #0f3a2c;
-  --court-700: #14513c;
-  --court-600: #1c6b4f;
-  --ball-500: #d6f34a;
-  --ball-600: #b9d63a;
-  --clay-500: #e0703c;
-  --ink-900: #10231c;
-  --ink-600: #43524d;
-  --ink-400: #7b8a85;
-  --line-200: #dde5e1;
-  --surface-100: #f2f6f4;
+  --court-900: #0c2340;
+  --court-800: #123156;
+  --court-700: #17457a;
+  --court-600: #1d63b0;
+  --ball-500: #d8f24e;
+  --ball-600: #bcd93c;
+  --clay-500: #e2703a;
+  --ink-900: #111c28;
+  --ink-600: #41505f;
+  --ink-400: #7a8899;
+  --line-200: #d8e2ee;
+  --surface-100: #eef3f9;
   --white: #ffffff;
   --radius-lg: 18px;
   --radius-md: 12px;
   --radius-sm: 8px;
-  --shadow-md: 0 12px 32px rgba(11, 42, 32, 0.12);
+  --shadow-md: 0 12px 32px rgba(12, 35, 64, 0.14);
+  --shadow-lg: 0 24px 56px rgba(12, 35, 64, 0.22);
   --font-display: "Poppins", "Segoe UI", sans-serif;
   --font-body: "Inter", "Segoe UI", sans-serif;
 }
@@ -63,25 +70,12 @@ a { color: var(--court-600); }
 .brand { display: flex; align-items: center; gap: 12px; }
 
 .brand__ball {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--ball-500);
-  position: relative;
+  width: 36px;
+  height: 36px;
   flex: none;
-  box-shadow: inset -4px -4px 10px rgba(0, 0, 0, 0.18);
+  display: block;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
 }
-
-.brand__ball::before,
-.brand__ball::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid var(--court-900);
-  clip-path: inset(0 62% 0 0);
-}
-.brand__ball::after { clip-path: inset(0 0 0 62%); }
 
 .brand__text { display: flex; flex-direction: column; line-height: 1.15; }
 .brand__text strong { font-family: var(--font-display); font-size: 1.1rem; }
@@ -128,7 +122,7 @@ a { color: var(--court-600); }
   border-radius: var(--radius-lg);
   padding: 22px;
   margin-bottom: 20px;
-  box-shadow: 0 4px 18px rgba(11, 42, 32, 0.07);
+  box-shadow: 0 4px 18px rgba(12, 35, 64, 0.07);
 }
 
 .hero-card {
@@ -253,7 +247,7 @@ textarea { resize: vertical; }
   background: var(--white);
   border-radius: var(--radius-md);
   padding: 16px;
-  box-shadow: 0 4px 18px rgba(11, 42, 32, 0.07);
+  box-shadow: 0 4px 18px rgba(12, 35, 64, 0.07);
 }
 
 .kpi strong { display: block; font-family: var(--font-display); font-size: 1.6rem; color: var(--court-700); }
@@ -264,27 +258,19 @@ textarea { resize: vertical; }
 .sorteo-botones { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .pelota {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
+  width: 74px;
+  height: 74px;
   border: 0;
+  padding: 0;
+  background: none;
   cursor: pointer;
-  background: radial-gradient(circle at 32% 30%, #eaff77, var(--ball-500) 60%, var(--ball-600));
-  position: relative;
   flex: none;
-  box-shadow: 0 8px 20px rgba(11, 42, 32, 0.25);
+  filter: drop-shadow(0 8px 18px rgba(12, 35, 64, 0.3));
+  transition: transform 0.15s ease;
 }
 
-.pelota::before, .pelota::after {
-  content: "";
-  position: absolute;
-  inset: 4px;
-  border-radius: 50%;
-  border: 3px solid var(--white);
-  clip-path: inset(0 64% 0 0);
-}
-.pelota::after { clip-path: inset(0 0 0 64%); }
-.pelota:hover { transform: scale(1.05); }
+.pelota svg { width: 100%; height: 100%; display: block; }
+.pelota:hover { transform: scale(1.06); }
 .pelota.girando { animation: rebote 0.7s ease; }
 
 @keyframes rebote {
@@ -349,7 +335,7 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
   background: var(--white);
   border-radius: var(--radius-lg);
   padding: 18px;
-  box-shadow: 0 4px 18px rgba(11, 42, 32, 0.07);
+  box-shadow: 0 4px 18px rgba(12, 35, 64, 0.07);
 }
 
 .grupo-card h3 { margin-top: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -381,7 +367,7 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 3px 14px rgba(11, 42, 32, 0.06);
+  box-shadow: 0 3px 14px rgba(12, 35, 64, 0.06);
 }
 
 .partido__cabecera {
@@ -454,7 +440,7 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
   background: var(--white);
   border-radius: var(--radius-md);
   padding: 8px 10px;
-  box-shadow: 0 3px 12px rgba(11, 42, 32, 0.07);
+  box-shadow: 0 3px 12px rgba(12, 35, 64, 0.07);
   border-left: 3px solid var(--line-200);
 }
 
@@ -614,9 +600,9 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
   padding: 26px;
   max-width: 380px;
   width: calc(100% - 32px);
-  box-shadow: var(--shadow-lg, 0 24px 56px rgba(11, 42, 32, 0.28));
+  box-shadow: var(--shadow-lg, 0 24px 56px rgba(12, 35, 64, 0.28));
 }
-.dialogo::backdrop { background: rgba(11, 42, 32, 0.55); }
+.dialogo::backdrop { background: rgba(12, 35, 64, 0.55); }
 .dialogo label { display: block; margin-bottom: 12px; font-size: 0.85rem; font-weight: 600; }
 .dialogo label input { margin-top: 5px; font-weight: 400; }
 .dialogo__acciones { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
@@ -638,7 +624,7 @@ body.solo-lectura select:disabled { background: var(--surface-100); color: var(-
   font: 600 0.9rem var(--font-body);
   background: var(--court-700);
   color: var(--white);
-  box-shadow: 0 10px 28px rgba(11, 42, 32, 0.3);
+  box-shadow: 0 10px 28px rgba(12, 35, 64, 0.3);
   animation: aparece 0.18s ease;
 }
 
@@ -655,3 +641,46 @@ body.solo-lectura select:disabled { background: var(--surface-100); color: var(-
 @media (max-width: 640px) {
   .aviso-guardado { right: 12px; left: 12px; bottom: 12px; text-align: center; }
 }
+
+/* ---------- Imagen del club ---------- */
+.hero__logo {
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 0 0 20px;
+  display: inline-block;
+  max-width: 240px;
+  box-shadow: 0 6px 18px rgba(12, 35, 64, 0.25);
+}
+
+.hero__logo img { max-height: 92px; width: auto; max-width: 100%; }
+
+/* Sin esto, el display de arriba le gana al atributo hidden y el recuadro
+   se queda visible aunque no haya imagen. */
+.hero__logo[hidden] { display: none; }
+
+.logo-club {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.logo-club__vista {
+  width: 160px;
+  height: 108px;
+  border: 2px dashed var(--line-200);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-100);
+  overflow: hidden;
+  flex: none;
+}
+
+.logo-club__vista span { color: var(--ink-400); font-size: 0.82rem; }
+.logo-club__vista img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.logo-club__acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.logo-club__acciones .nota { width: 100%; margin: 0; }

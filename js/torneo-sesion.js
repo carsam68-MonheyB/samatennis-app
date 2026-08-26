@@ -65,6 +65,61 @@
     temporizadorAviso = window.setTimeout(function () { caja.hidden = true; }, 2500);
   }
 
+  // ------------------------------------------------------ imagen del club
+
+  // El logo viaja dentro del documento del torneo, que en Firestore no puede
+  // pasar de 1 MB. Reducirlo aquí evita ese tope y hace que cargue rápido en
+  // el celular de quien consulta desde la cancha.
+  var LADO_MAXIMO = 520;
+  var PESO_MAXIMO = 350 * 1024;
+
+  function reducirImagen(archivo) {
+    return new Promise(function (resolver, rechazar) {
+      var lector = new FileReader();
+      lector.onerror = function () { rechazar(new Error("No se pudo leer el archivo.")); };
+      lector.onload = function () {
+        var imagen = new Image();
+        imagen.onerror = function () { rechazar(new Error("El archivo no es una imagen válida.")); };
+        imagen.onload = function () {
+          var escala = Math.min(1, LADO_MAXIMO / Math.max(imagen.width, imagen.height));
+          var lienzo = document.createElement("canvas");
+          lienzo.width = Math.round(imagen.width * escala);
+          lienzo.height = Math.round(imagen.height * escala);
+          lienzo.getContext("2d").drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+
+          // WebP conserva la transparencia de los logos y pesa menos que PNG.
+          var datos = lienzo.toDataURL("image/webp", 0.85);
+          if (datos.indexOf("data:image/webp") !== 0) datos = lienzo.toDataURL("image/png");
+          if (datos.length > PESO_MAXIMO) datos = lienzo.toDataURL("image/jpeg", 0.8);
+          if (datos.length > PESO_MAXIMO) {
+            rechazar(new Error("La imagen pesa demasiado, prueba con una más sencilla."));
+            return;
+          }
+          resolver(datos);
+        };
+        imagen.src = lector.result;
+      };
+      lector.readAsDataURL(archivo);
+    });
+  }
+
+  function pintarLogo() {
+    var logo = Store.estado().torneo.logo || "";
+
+    var enPortada = $("#hero-logo");
+    if (enPortada) {
+      enPortada.hidden = !logo;
+      if (logo) $("#hero-logo-img").src = logo;
+    }
+
+    var vista = $("#logo-vista");
+    if (vista) {
+      vista.innerHTML = logo
+        ? '<img src="' + logo + '" alt="Imagen del club" />'
+        : "<span>Sin imagen</span>";
+    }
+  }
+
   // ------------------------------------------------------------- encabezado
 
   function pintarSesion() {
@@ -173,7 +228,8 @@
           nombre: datos.torneo.nombre || "",
           sede: datos.torneo.sede || "",
           inicio: datos.torneo.inicio || "",
-          fin: datos.torneo.fin || ""
+          fin: datos.torneo.fin || "",
+          logo: datos.torneo.logo || ""
         },
         admins: datos.torneo.admins || [],
         categorias: datos.categorias,
@@ -272,6 +328,7 @@
     pintarPanelNube();
     pintarTextosDeDatos();
     pintarPortada();
+    pintarLogo();
   }
 
   // ------------------------------------------------------------- eventos
@@ -301,6 +358,38 @@
 
     $("#btn-salir").addEventListener("click", function () {
       nube.salir().then(refrescar);
+    });
+
+    // --- imagen del club
+    $("#btn-subir-logo").addEventListener("click", function () {
+      $("#archivo-logo").click();
+    });
+
+    $("#archivo-logo").addEventListener("change", function (evento) {
+      var archivo = evento.target.files && evento.target.files[0];
+      evento.target.value = "";
+      if (!archivo) return;
+
+      var nota = $("#nota-logo");
+      nota.textContent = "Preparando la imagen…";
+
+      reducirImagen(archivo)
+        .then(function (datos) {
+          Store.setDatosTorneo({ logo: datos });
+          nota.textContent = "Listo: la imagen ya aparece en la portada.";
+          refrescar();
+        })
+        .catch(function (falla) {
+          nota.textContent = falla.message;
+        });
+    });
+
+    $("#btn-quitar-logo").addEventListener("click", function () {
+      if (!Store.estado().torneo.logo) return;
+      if (!window.confirm("¿Quitar la imagen del club?")) return;
+      Store.setDatosTorneo({ logo: "" });
+      $("#nota-logo").textContent = "Imagen quitada.";
+      refrescar();
     });
 
     $("#panel-nube").addEventListener("click", function (evento) {

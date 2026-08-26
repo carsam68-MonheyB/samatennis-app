@@ -44,7 +44,7 @@
   function torneoVacio() {
     return {
       torneoId: "",          // id del documento en la nube; vacío = sólo local
-      torneo: { nombre: "Nuevo torneo", sede: "", inicio: "", fin: "" },
+      torneo: { nombre: "Nuevo torneo", sede: "", inicio: "", fin: "", logo: "" },
       admins: [],            // correos que pueden capturar en este torneo
       categorias: [],
       categoriaActiva: ""

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Draws Tennis — Grupos, ranking y cuadro final</title>
 <meta name="description" content="App para administrar un torneo de tenis por grupos: sorteo, captura de resultados, porcentajes de sets y juegos, ranking del torneo y cuadro final sembrado." />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230b3d2e'/%3E%3Ccircle cx='16' cy='16' r='9' fill='%23d6f34a'/%3E%3Cpath d='M8 10c4 3 4 9 0 12M24 10c-4 3-4 9 0 12' stroke='%230b3d2e' stroke-width='1.6' fill='none'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CradialGradient id='g' cx='34%25' cy='28%25' r='78%25'%3E%3Cstop offset='0%25' stop-color='%23f0ff8c'/%3E%3Cstop offset='50%25' stop-color='%23d8f24e'/%3E%3Cstop offset='100%25' stop-color='%239fbe28'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='50' cy='50' r='47' fill='url(%23g)'/%3E%3Cg fill='none' stroke-linecap='round' transform='rotate(-28 50 50)'%3E%3Cpath d='M12 20 C31 38,31 62,12 80' stroke='%238fae22' stroke-width='7'/%3E%3Cpath d='M88 20 C69 38,69 62,88 80' stroke='%238fae22' stroke-width='7'/%3E%3Cpath d='M12 20 C31 38,31 62,12 80' stroke='%23fff' stroke-width='4'/%3E%3Cpath d='M88 20 C69 38,69 62,88 80' stroke='%23fff' stroke-width='4'/%3E%3C/g%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -16,7 +16,22 @@
 <header class="app-header">
   <div class="app-header__inner">
     <div class="brand">
-      <span class="brand__ball" aria-hidden="true"></span>
+      <svg class="brand__ball" viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <radialGradient id="pelotaChica" cx="34%" cy="28%" r="78%">
+            <stop offset="0%" stop-color="#f0ff8c" />
+            <stop offset="50%" stop-color="#d8f24e" />
+            <stop offset="100%" stop-color="#9fbe28" />
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="50" r="47" fill="url(#pelotaChica)" />
+        <g fill="none" stroke-linecap="round" transform="rotate(-28 50 50)">
+          <path d="M12 20 C31 38,31 62,12 80" stroke="#8fae22" stroke-width="7" />
+          <path d="M88 20 C69 38,69 62,88 80" stroke="#8fae22" stroke-width="7" />
+          <path d="M12 20 C31 38,31 62,12 80" stroke="#ffffff" stroke-width="4" />
+          <path d="M88 20 C69 38,69 62,88 80" stroke="#ffffff" stroke-width="4" />
+        </g>
+      </svg>
       <span class="brand__text">
         <strong>Draws Tennis</strong>
         <small id="brand-torneo">Torneo</small>
@@ -70,6 +85,7 @@
   <!-- ---------------------------------------------------------- Inicio -->
   <section class="vista is-active" id="vista-inicio">
     <div class="hero-card">
+      <div class="hero__logo" id="hero-logo" hidden><img id="hero-logo-img" alt="" /></div>
       <h1 id="hero-titulo">Administra tu torneo de tenis de principio a fin</h1>
       <p id="hero-datos">
         Sorteo de grupos, captura de resultados set por set, porcentajes de sets y juegos,
@@ -92,6 +108,23 @@
     </div>
 
     <div class="kpis" id="kpis"></div>
+
+    <div class="panel" data-solo-dueno>
+      <h2>Imagen del club</h2>
+      <p class="nota">
+        Aparece en la portada del torneo, para todos los que abran la liga.
+        Se guarda dentro del torneo, así que cada torneo puede llevar la suya.
+      </p>
+      <div class="logo-club">
+        <div class="logo-club__vista" id="logo-vista"><span>Sin imagen</span></div>
+        <div class="logo-club__acciones">
+          <input type="file" id="archivo-logo" accept="image/*" hidden />
+          <button type="button" class="btn btn--sm" id="btn-subir-logo">Elegir imagen</button>
+          <button type="button" class="btn btn--sm btn--ghost" id="btn-quitar-logo">Quitar</button>
+          <p class="nota" id="nota-logo">JPG o PNG. Se reduce sola para que cargue rápido.</p>
+        </div>
+      </div>
+    </div>
 
     <div class="panel" data-solo-admin>
       <h2>Torneo en la nube</h2>
@@ -155,7 +188,24 @@
         al congelar el sorteo se arman los grupos y su calendario de partidos.
       </p>
       <div class="sorteo-acciones">
-        <button type="button" class="pelota" id="btn-sortear" aria-label="Sortear"></button>
+        <button type="button" class="pelota" id="btn-sortear" aria-label="Sortear">
+          <svg class="" viewBox="0 0 100 100" aria-hidden="true">
+        <defs>
+          <radialGradient id="pelotaSorteo" cx="34%" cy="28%" r="78%">
+            <stop offset="0%" stop-color="#f0ff8c" />
+            <stop offset="50%" stop-color="#d8f24e" />
+            <stop offset="100%" stop-color="#9fbe28" />
+          </radialGradient>
+        </defs>
+        <circle cx="50" cy="50" r="47" fill="url(#pelotaSorteo)" />
+        <g fill="none" stroke-linecap="round" transform="rotate(-28 50 50)">
+          <path d="M12 20 C31 38,31 62,12 80" stroke="#8fae22" stroke-width="7" />
+          <path d="M88 20 C69 38,69 62,88 80" stroke="#8fae22" stroke-width="7" />
+          <path d="M12 20 C31 38,31 62,12 80" stroke="#ffffff" stroke-width="4" />
+          <path d="M88 20 C69 38,69 62,88 80" stroke="#ffffff" stroke-width="4" />
+        </g>
+      </svg>
+        </button>
         <div class="sorteo-botones">
           <button type="button" class="btn" id="btn-congelar">Congelar sorteo y armar grupos</button>
           <button type="button" class="btn btn--ghost" id="btn-reabrir">Reabrir sorteo</button>

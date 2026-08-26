@@ -8,6 +8,23 @@ Está construida a partir de la lógica del archivo
 dependencias ni compilación: se abre `index.html` en cualquier navegador
 y todo se guarda en `localStorage`.
 
+## Identidad visual
+
+La paleta es **"cancha dura"**: azul marino de la superficie con el amarillo de
+la pelota como acento. Se eligió comparando cuatro paletas aplicadas sobre la
+app real —verde cancha, azul cancha dura, arcilla y grafito—: el azul es el que
+hace resaltar más el amarillo y el que se lee como tenis de un vistazo.
+
+La pelota del encabezado, del botón de sorteo y del ícono de la pestaña es un
+SVG con la costura clásica en S, degradado de volumen y el hilo marcado. Se
+mantiene nítida a cualquier tamaño.
+
+El dueño puede subir una **imagen del club** desde *Inicio*: aparece en la
+portada del torneo para todos los que abran la liga. Se reduce en el navegador
+antes de guardarse (máximo 520 px de lado, WebP con respaldo a PNG o JPEG) para
+no acercarse al tope de 1 MB por documento de Firestore. Cada torneo lleva la
+suya.
+
 ## Categorías
 
 Un torneo contiene varias **categorías**, y cada una es una competencia
