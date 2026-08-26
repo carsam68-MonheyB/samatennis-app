@@ -27,7 +27,7 @@
       <span class="sesion__estado" id="sesion-estado">Conectando…</span>
       <button type="button" class="btn btn--ghost" id="btn-entrar" hidden>Iniciar sesión</button>
       <button type="button" class="btn btn--ghost" id="btn-salir" hidden>Salir</button>
-      <button type="button" class="btn btn--ghost" id="btn-exportar">Exportar</button>
+      <button type="button" class="btn btn--ghost" data-solo-admin id="btn-exportar">Exportar</button>
       <button type="button" class="btn btn--ghost" data-solo-admin id="btn-importar">Importar</button>
       <button type="button" class="btn btn--ghost" data-solo-admin id="btn-ejemplo">Torneo de ejemplo</button>
       <button type="button" class="btn btn--ghost btn--danger" data-solo-admin id="btn-nuevo">Nuevo torneo</button>
@@ -36,9 +36,9 @@
   </div>
   <nav class="tabs" id="tabs">
     <button type="button" class="tab is-active" data-vista="inicio">Inicio</button>
-    <button type="button" class="tab" data-vista="categorias">Categorías</button>
-    <button type="button" class="tab" data-vista="jugadores">Jugadores</button>
-    <button type="button" class="tab" data-vista="sorteo">Sorteo</button>
+    <button type="button" class="tab" data-solo-admin data-vista="categorias">Categorías</button>
+    <button type="button" class="tab" data-solo-admin data-vista="jugadores">Jugadores</button>
+    <button type="button" class="tab" data-solo-admin data-vista="sorteo">Sorteo</button>
     <button type="button" class="tab" data-vista="resultados">Resultados</button>
     <button type="button" class="tab" data-vista="grupos">Grupos</button>
     <button type="button" class="tab" data-vista="ranking">Ranking</button>
@@ -70,12 +70,12 @@
   <!-- ---------------------------------------------------------- Inicio -->
   <section class="vista is-active" id="vista-inicio">
     <div class="hero-card">
-      <h1>Administra tu torneo de tenis de principio a fin</h1>
+      <h1 id="hero-titulo">Administra tu torneo de tenis de principio a fin</h1>
       <p id="hero-datos">
         Sorteo de grupos, captura de resultados set por set, porcentajes de sets y juegos,
         ranking del torneo y cuadro final sembrado automáticamente.
       </p>
-      <form class="grid-form" id="form-torneo">
+      <form class="grid-form" id="form-torneo" data-solo-admin>
         <label>Nombre del torneo
           <input type="text" id="torneo-nombre" placeholder="Copa Tenis 2025" />
         </label>
@@ -93,12 +93,12 @@
 
     <div class="kpis" id="kpis"></div>
 
-    <div class="panel">
+    <div class="panel" data-solo-admin>
       <h2>Torneo en la nube</h2>
       <div id="panel-nube"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel" data-solo-admin>
       <h2>Cómo funciona</h2>
       <ol class="pasos">
         <li><strong>Jugadores.</strong> Captura las cabezas de grupo (una por grupo) y la lista de inscritos que entran al sorteo.</li>
@@ -193,7 +193,7 @@
       </p>
     </div>
 
-    <div class="panel">
+    <div class="panel" data-solo-admin>
       <h2>Clasifican al cuadro final</h2>
       <p class="nota">
         Todos los primeros de grupo suelen pasar directo. De los demás lugares eliges cuántos entran:

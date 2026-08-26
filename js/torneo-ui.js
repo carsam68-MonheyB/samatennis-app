@@ -646,6 +646,9 @@
 
   var soloLectura = false;
 
+  // Vistas que sólo tienen sentido para quien administra el torneo.
+  var VISTAS_DE_ADMIN = ["categorias", "jugadores", "sorteo"];
+
   /** Deja la app en modo consulta para quien no puede capturar. */
   function aplicarModoLectura() {
     document.body.classList.toggle("solo-lectura", soloLectura);
@@ -655,6 +658,11 @@
     $$("[data-solo-admin]").forEach(function (nodo) {
       nodo.hidden = soloLectura;
     });
+
+    // Si el espectador estaba parado en una vista de administración, sacarlo.
+    if (soloLectura && VISTAS_DE_ADMIN.indexOf(vistaActual) !== -1) {
+      mostrarVista("inicio");
+    }
   }
 
   function setSoloLectura(valor) {

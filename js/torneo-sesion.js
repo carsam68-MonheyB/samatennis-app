@@ -18,6 +18,15 @@
     return (UI && UI.escapar ? UI.escapar : String)(texto);
   }
 
+  /** El torneo puede venir en la liga: …/?torneo=copa-2025 */
+  function torneoDeLaLiga() {
+    try {
+      return new URLSearchParams(window.location.search).get("torneo") || "";
+    } catch (error) {
+      return "";
+    }
+  }
+
   /** Sólo se bloquea la edición cuando el torneo vive en la nube. */
   function soloLectura() {
     var estado = Store.estado();
@@ -144,6 +153,28 @@
     });
   }
 
+  /** La portada le habla distinto a quien administra y a quien sólo consulta. */
+  function pintarPortada() {
+    var titulo = $("#hero-titulo");
+    if (!titulo) return;
+
+    var estado = Store.estado();
+    var categoria = Store.categoria();
+
+    if (soloLectura()) {
+      titulo.textContent = estado.torneo.nombre || "Torneo";
+      var hero = $("#hero-datos");
+      if (hero) {
+        hero.textContent = (categoria ? categoria.nombre + ". " : "") +
+          "Resultados, tablas de posiciones, ranking y cuadro final, actualizados en vivo " +
+          "conforme se van jugando los partidos.";
+      }
+      return;
+    }
+
+    titulo.textContent = "Administra tu torneo de tenis de principio a fin";
+  }
+
   /** El texto de "dónde viven los datos" cambia según haya nube o no. */
   function pintarTextosDeDatos() {
     var torneoId = Store.estado().torneoId;
@@ -173,12 +204,32 @@
     }
   }
 
+  /**
+   * Quien abre la liga por primera vez no ha elegido torneo: le abrimos el que
+   * indique la liga, el que ya tuviera guardado, o el más reciente de la nube.
+   * Sin esto un espectador vería el torneo de ejemplo local en vez del real.
+   */
+  function abrirTorneoPorOmision() {
+    var deLaLiga = torneoDeLaLiga();
+    if (deLaLiga) return abrirTorneo(deLaLiga);
+
+    var guardado = Store.estado().torneoId;
+    if (guardado) return abrirTorneo(guardado);
+
+    nube.listarTorneos().then(function (torneos) {
+      if (torneos.length) abrirTorneo(torneos[0].id);
+    }).catch(function (error) {
+      console.warn("No se pudo listar los torneos:", error);
+    });
+  }
+
   function refrescar() {
     UI.setSoloLectura(soloLectura());
     UI.render();
     pintarSesion();
     pintarPanelNube();
     pintarTextosDeDatos();
+    pintarPortada();
   }
 
   // ------------------------------------------------------------- eventos
@@ -272,13 +323,14 @@
 
     conectar();
 
+    var yaAbrio = false;
+
     nube.iniciar({
       alCambiar: function (nuevo) {
         estadoNube = nuevo;
-        var estado = Store.estado();
-        // Al abrir la app, si el torneo guardado vive en la nube, reengancharlo.
-        if (nuevo.disponible && estado.torneoId && !nube.estado().torneoId) {
-          abrirTorneo(estado.torneoId);
+        if (nuevo.disponible && !yaAbrio && !nube.estado().torneoId) {
+          yaAbrio = true;
+          abrirTorneoPorOmision();
         }
         refrescar();
       }
