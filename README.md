@@ -148,6 +148,20 @@ La app funciona sola contra `localStorage`. Conectada a Firebase, además:
   puedan capturar al mismo tiempo en canchas distintas sin pisarse.
 - **Si se cae la red**, el SDK sigue mostrando lo último y encola las escrituras.
 
+### Quién puede qué
+
+| | Dueño | Administrador | Consulta |
+|---|---|---|---|
+| Crear y subir torneos, asignar administradores | ✓ | — | — |
+| Nombre, sede, fechas e imagen del club | ✓ | — | — |
+| Categorías, jugadores y sorteo | ✓ | ✓ | — |
+| Calendario y captura de resultados | ✓ | ✓ | — |
+| Exportar un respaldo | ✓ | ✓ | — |
+| Ver resultados, tablas, ranking y cuadro | ✓ | ✓ | ✓ |
+
+La identidad del torneo es del dueño; el administrador trabaja dentro del
+torneo que le asignaron.
+
 ### Puesta en marcha
 
 1. Consola de Firebase → **Authentication** → Email/Password activado, y los

@@ -31,6 +31,13 @@
 
 * { box-sizing: border-box; }
 
+/*
+ * Cualquier regla de display (grid, flex, inline-block) le gana al atributo
+ * hidden y deja visible lo que debería estar oculto. Esta regla lo cierra de
+ * una vez para toda la app: ya nos mordió dos veces.
+ */
+[hidden] { display: none !important; }
+
 body {
   margin: 0;
   font-family: var(--font-body);
@@ -701,9 +708,6 @@ body.solo-lectura select:disabled { background: var(--surface-100); color: var(-
 
 .hero__logo img { max-height: 92px; width: auto; max-width: 100%; }
 
-/* Sin esto, el display de arriba le gana al atributo hidden y el recuadro
-   se queda visible aunque no haya imagen. */
-.hero__logo[hidden] { display: none; }
 
 .logo-club {
   display: flex;
@@ -740,7 +744,6 @@ body.solo-lectura select:disabled { background: var(--surface-100); color: var(-
   border-right: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.marca-club[hidden] { display: none; }
 
 .marca-club img {
   height: 40px;
