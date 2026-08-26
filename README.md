@@ -19,6 +19,11 @@ La pelota del encabezado, del botón de sorteo y del ícono de la pestaña es un
 SVG con la costura clásica en S, degradado de volumen y el hilo marcado. Se
 mantiene nítida a cualquier tamaño.
 
+La portada lleva de fondo una **cancha vista desde arriba**, dibujada en SVG con
+las medidas reales (78 × 36 pies: líneas de sencillos, cuadros de saque, línea
+central de saque y la red al centro), estirada al ancho de la tarjeta. Un velo
+en degradado la atenúa del lado del texto para que no compita con la lectura.
+
 El dueño puede subir una **imagen del club** desde *Inicio*: aparece en la
 portada del torneo para todos los que abran la liga. Se reduce en el navegador
 antes de guardarse (máximo 520 px de lado, WebP con respaldo a PNG o JPEG) para

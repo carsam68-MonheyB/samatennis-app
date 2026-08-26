@@ -131,7 +131,50 @@ a { color: var(--court-600); }
   border-radius: var(--radius-lg);
   padding: 30px;
   margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
 }
+
+/* ---------- Cancha de fondo de la portada ---------- */
+.hero__cancha {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.cancha__interior { fill: rgba(255, 255, 255, 0.05); }
+
+.cancha__lineas {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.28);
+  stroke-width: 0.45;
+  vector-effect: non-scaling-stroke;
+}
+
+.cancha__red {
+  stroke: rgba(255, 255, 255, 0.42);
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+}
+
+/* El contenido va encima, y con un velo para que el texto no compita
+   con las líneas de la cancha. */
+.hero-card__contenido {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(12, 35, 64, 0.72) 0%, rgba(12, 35, 64, 0.42) 55%, rgba(12, 35, 64, 0.12) 100%);
+  pointer-events: none;
+}
+
+.hero-card__contenido { z-index: 2; }
 
 .hero-card p { color: rgba(255, 255, 255, 0.86); max-width: 70ch; }
 
