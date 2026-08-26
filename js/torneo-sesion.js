@@ -144,11 +144,42 @@
     });
   }
 
+  /** El texto de "dónde viven los datos" cambia según haya nube o no. */
+  function pintarTextosDeDatos() {
+    var torneoId = Store.estado().torneoId;
+    var pie = $("#pie-datos");
+    var hero = $("#hero-datos");
+
+    if (torneoId) {
+      if (pie) {
+        pie.innerHTML = "El torneo <strong>" + escapar(torneoId) + "</strong> vive en la nube: " +
+          "todos lo ven en vivo. <strong>Exportar</strong> sigue sirviendo como respaldo.";
+      }
+      if (hero) {
+        hero.innerHTML = "Sorteo de grupos, captura de resultados set por set, porcentajes de sets y " +
+          "juegos, ranking del torneo y cuadro final sembrado automáticamente. " +
+          "Los administradores capturan y todos lo ven al instante.";
+      }
+      return;
+    }
+
+    if (pie) {
+      pie.innerHTML = "Los datos viven sólo en este navegador. Usa <strong>Exportar</strong> " +
+        "para respaldar el torneo.";
+    }
+    if (hero) {
+      hero.innerHTML = "Sorteo de grupos, captura de resultados set por set, porcentajes de sets y " +
+        "juegos, ranking del torneo y cuadro final sembrado automáticamente. " +
+        "Todo se guarda en este navegador.";
+    }
+  }
+
   function refrescar() {
     UI.setSoloLectura(soloLectura());
     UI.render();
     pintarSesion();
     pintarPanelNube();
+    pintarTextosDeDatos();
   }
 
   // ------------------------------------------------------------- eventos
