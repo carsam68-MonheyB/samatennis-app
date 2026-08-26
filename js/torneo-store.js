@@ -141,7 +141,9 @@
     } catch (error) {
       console.warn("No se pudo leer el torneo guardado:", error);
     }
-    estado = normalizarEstado(clonar(global.TorneoEjemplo || {}));
+    // Se arranca vacío a propósito: quien abre la app debe ver el torneo real
+    // que llega de la nube, no un ejemplo que además podría escribirse encima.
+    estado = torneoVacio();
     return estado;
   }
 

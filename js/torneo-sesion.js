@@ -254,7 +254,18 @@
     });
   }
 
+  /**
+   * Las herramientas del dueño se ocultan a los administradores sólo cuando el
+   * torneo vive en la nube. Sin nube la app es de un solo usuario y no aplica.
+   */
+  function ocultarHerramientasDeDueno() {
+    var estado = Store.estado();
+    if (!estadoNube.disponible || !estado.torneoId) return false;
+    return !estadoNube.esDueno;
+  }
+
   function refrescar() {
+    UI.setSoloDueno(ocultarHerramientasDeDueno());
     UI.setSoloLectura(soloLectura());
     UI.render();
     pintarSesion();

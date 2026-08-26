@@ -645,6 +645,9 @@
   }
 
   var soloLectura = false;
+  // Crear, importar o reemplazar torneos es del dueño; el administrador sólo
+  // trabaja dentro del torneo que le asignaron.
+  var soloDueno = false;
 
   // Vistas que sólo tienen sentido para quien administra el torneo.
   var VISTAS_DE_ADMIN = ["categorias", "jugadores", "sorteo"];
@@ -658,6 +661,9 @@
     $$("[data-solo-admin]").forEach(function (nodo) {
       nodo.hidden = soloLectura;
     });
+    $$("[data-solo-dueno]").forEach(function (nodo) {
+      nodo.hidden = soloLectura || soloDueno;
+    });
 
     // Si el espectador estaba parado en una vista de administración, sacarlo.
     if (soloLectura && VISTAS_DE_ADMIN.indexOf(vistaActual) !== -1) {
@@ -667,6 +673,12 @@
 
   function setSoloLectura(valor) {
     soloLectura = !!valor;
+    aplicarModoLectura();
+  }
+
+  /** true cuando la sesión NO es la del dueño: se ocultan sus herramientas. */
+  function setSoloDueno(valor) {
+    soloDueno = !!valor;
     aplicarModoLectura();
   }
 
@@ -958,7 +970,12 @@
     });
 
     $("#btn-nuevo").addEventListener("click", function () {
-      if (!window.confirm("Esto borra el torneo actual. ¿Continuar?")) return;
+      var enLaNube = !!Store.estado().torneoId;
+      var aviso = enLaNube
+        ? "Vas a empezar un torneo nuevo en blanco. El torneo que está en la nube NO se borra: " +
+          "sigue ahí y lo puedes volver a abrir cuando quieras. ¿Continuar?"
+        : "Esto borra el torneo actual. ¿Continuar?";
+      if (!window.confirm(aviso)) return;
       Store.nuevoTorneo();
       grupoFiltrado = "todos";
       render();
@@ -968,6 +985,7 @@
   window.TorneoUI = {
     render: render,
     setSoloLectura: setSoloLectura,
+    setSoloDueno: setSoloDueno,
     escapar: escapar
   };
 
