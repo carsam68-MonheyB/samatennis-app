@@ -24,8 +24,10 @@ las medidas reales (78 × 36 pies: líneas de sencillos, cuadros de saque, líne
 central de saque y la red al centro), estirada al ancho de la tarjeta. Un velo
 en degradado la atenúa del lado del texto para que no compita con la lectura.
 
-El dueño puede subir una **imagen del club** desde *Inicio*: aparece en la
-portada del torneo para todos los que abran la liga. Se reduce en el navegador
+El dueño puede subir una **imagen del club** desde *Inicio*: aparece en el
+encabezado —a la izquierda, antes del nombre de la app, separada por una línea,
+sobre un fondo claro para que también se vean los logos de tinta oscura— y en la
+portada del torneo, para todos los que abran la liga. Se reduce en el navegador
 antes de guardarse (máximo 520 px de lado, WebP con respaldo a PNG o JPEG) para
 no acercarse al tope de 1 MB por documento de Firestore. Cada torneo lleva la
 suya.

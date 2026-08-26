@@ -67,6 +67,9 @@ a { color: var(--court-600); }
   justify-content: space-between;
 }
 
+/* El logo del club y el nombre de la app viajan juntos a la izquierda. */
+.app-header__izquierda { display: flex; align-items: center; gap: 14px; }
+
 .brand { display: flex; align-items: center; gap: 12px; }
 
 .brand__ball {
@@ -727,3 +730,30 @@ body.solo-lectura select:disabled { background: var(--surface-100); color: var(-
 .logo-club__vista img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .logo-club__acciones { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .logo-club__acciones .nota { width: 100%; margin: 0; }
+
+/* ---------- Logo del club en el encabezado ---------- */
+.marca-club {
+  display: flex;
+  align-items: center;
+  padding-right: 14px;
+  margin-right: 2px;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.marca-club[hidden] { display: none; }
+
+.marca-club img {
+  height: 40px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  /* Fondo claro: muchos logos traen tinta oscura y se perderían en el azul. */
+  background: var(--white);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+}
+
+@media (max-width: 640px) {
+  .marca-club { padding-right: 10px; }
+  .marca-club img { height: 32px; max-width: 90px; }
+}

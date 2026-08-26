@@ -112,6 +112,12 @@
       if (logo) $("#hero-logo-img").src = logo;
     }
 
+    var enEncabezado = $("#marca-club");
+    if (enEncabezado) {
+      enEncabezado.hidden = !logo;
+      if (logo) $("#marca-club-img").src = logo;
+    }
+
     var vista = $("#logo-vista");
     if (vista) {
       vista.innerHTML = logo
