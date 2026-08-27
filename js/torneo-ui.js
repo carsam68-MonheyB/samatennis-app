@@ -536,9 +536,9 @@
               '<td class="num">' + fila.pj + "</td>" +
               '<td class="num">' + fila.pg + "-" + fila.pp + "</td>" +
               '<td class="num">' + fila.sg + "-" + fila.sp + "</td>" +
-              '<td class="num">' + pct(fila.pctSets) + "</td>" +
+              '<td class="num" data-solo-admin>' + pct(fila.pctSets) + "</td>" +
               '<td class="num">' + fila.jg + "-" + fila.jp + "</td>" +
-              '<td class="num">' + pct(fila.pctJuegos) + "</td>" +
+              '<td class="num" data-solo-admin>' + pct(fila.pctJuegos) + "</td>" +
               '<td class="num"><strong>' + puntos(fila.puntaje) + "</strong></td>" +
               '<td data-solo-admin><select class="select-desempate" data-desempate="' + escapar(fila.jugador) + '">' +
               opciones + "</select></td></tr>"
@@ -551,7 +551,8 @@
             '<div class="tabla-wrap"><table><thead><tr>' +
             '<th class="num">#</th><th>Jugador</th><th class="num" title="Partidos jugados">PJ</th>' +
             '<th class="num" title="Partidos ganados - perdidos">PG-PP</th><th class="num">Sets</th>' +
-            '<th class="num">%S</th><th class="num">Juegos</th><th class="num">%J</th>' +
+            '<th class="num" data-solo-admin>%S</th><th class="num">Juegos</th>' +
+            '<th class="num" data-solo-admin>%J</th>' +
             '<th class="num">Puntaje</th><th data-solo-admin>Des.</th>' +
             "</tr></thead><tbody>" + filas + "</tbody></table></div></div>"
           );
@@ -567,7 +568,8 @@
     $("#tabla-ranking").innerHTML = datos.ranking.length
       ? '<div class="tabla-wrap"><table><thead><tr>' +
         '<th class="num">RKN</th><th>Jugador</th><th>Grupo</th><th class="num">Pos.</th>' +
-        '<th class="num">% sets</th><th class="num">% juegos</th><th class="num">Puntaje</th>' +
+        '<th class="num" data-solo-admin>% sets</th><th class="num" data-solo-admin>% juegos</th>' +
+        '<th class="num">Puntaje</th>' +
         "</tr></thead><tbody>" +
         datos.ranking.map(function (fila) {
           return (
@@ -575,8 +577,8 @@
             '<td class="jugador">' + escapar(fila.jugador) + "</td>" +
             "<td>" + escapar(fila.grupo) + "</td>" +
             '<td class="num">' + fila.posicion + "</td>" +
-            '<td class="num">' + pct(fila.pctSets) + "</td>" +
-            '<td class="num">' + pct(fila.pctJuegos) + "</td>" +
+            '<td class="num" data-solo-admin>' + pct(fila.pctSets) + "</td>" +
+            '<td class="num" data-solo-admin>' + pct(fila.pctJuegos) + "</td>" +
             '<td class="num"><strong>' + puntos(fila.puntaje) + "</strong></td></tr>"
           );
         }).join("") +
