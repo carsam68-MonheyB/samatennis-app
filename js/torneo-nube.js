@@ -185,6 +185,23 @@ function escuchar(torneoId, alRecibir) {
 
   const armado = { torneo: null, categorias: {}, partidos: {} };
 
+  /*
+   * Firestore avisa también de lo que uno mismo acaba de escribir: llega como
+   * un eco local con la escritura todavía pendiente. Ese eco no trae nada
+   * nuevo —el dato ya está en la app— y sí provoca un repintado justo mientras
+   * se captura un marcador, que es lo que sacaba al capturista del formulario.
+   *
+   * Lo que llega se guarda siempre (para no perder de vista ningún documento),
+   * pero sólo se avisa a la app cuando el cambio viene de alguien más.
+   */
+  function esEcoPropio(instantanea) {
+    return !!(instantanea.metadata && instantanea.metadata.hasPendingWrites);
+  }
+
+  function hayCambiosAjenos(cambios) {
+    return cambios.some(function (cambio) { return !esEcoPropio(cambio.doc); });
+  }
+
   function publicar() {
     if (!armado.torneo) return;
     const categorias = Object.keys(armado.categorias).map(function (id) {
@@ -207,14 +224,15 @@ function escuchar(torneoId, alRecibir) {
     sdk.onSnapshot(refTorneo, function (instantanea) {
       if (!instantanea.exists()) return;
       armado.torneo = Object.assign({ id: instantanea.id }, instantanea.data());
-      publicar();
+      if (!esEcoPropio(instantanea)) publicar();
     })
   );
 
   const refCategorias = sdk.collection(refTorneo, "categorias");
   estado.escuchas.push(
     sdk.onSnapshot(refCategorias, function (instantanea) {
-      instantanea.docChanges().forEach(function (cambio) {
+      const cambios = instantanea.docChanges();
+      cambios.forEach(function (cambio) {
         const id = cambio.doc.id;
         if (cambio.type === "removed") {
           delete armado.categorias[id];
@@ -228,17 +246,18 @@ function escuchar(torneoId, alRecibir) {
           armado.partidos[id] = {};
           estado.escuchas.push(
             sdk.onSnapshot(sdk.collection(refCategorias, id, "partidos"), function (lote) {
-              lote.docChanges().forEach(function (cambioPartido) {
+              const cambiosPartidos = lote.docChanges();
+              cambiosPartidos.forEach(function (cambioPartido) {
                 if (cambioPartido.type === "removed") delete armado.partidos[id][cambioPartido.doc.id];
                 else armado.partidos[id][cambioPartido.doc.id] =
                   Object.assign({ id: cambioPartido.doc.id }, cambioPartido.doc.data());
               });
-              publicar();
+              if (hayCambiosAjenos(cambiosPartidos)) publicar();
             })
           );
         }
       });
-      publicar();
+      if (hayCambiosAjenos(cambios)) publicar();
     })
   );
 }

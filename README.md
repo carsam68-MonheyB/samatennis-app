@@ -15,6 +15,10 @@ la pelota como acento. Se eligió comparando cuatro paletas aplicadas sobre la
 app real —verde cancha, azul cancha dura, arcilla y grafito—: el azul es el que
 hace resaltar más el amarillo y el que se lee como tenis de un vistazo.
 
+El fondo de la página es **gris grafito** (`--fondo-app`), para que los paneles
+blancos se lean como hojas sobre la mesa. Ojo con `--surface-100`: ése es el
+gris claro de chips y botones suaves *dentro* de los paneles, no el fondo.
+
 La pelota del encabezado, del botón de sorteo y del ícono de la pestaña es un
 SVG con la costura clásica en S, degradado de volumen y el hilo marcado. Se
 mantiene nítida a cualquier tamaño.

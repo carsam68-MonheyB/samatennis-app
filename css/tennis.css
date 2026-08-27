@@ -19,6 +19,9 @@
   --ink-400: #7a8899;
   --line-200: #d8e2ee;
   --surface-100: #eef3f9;
+  /* Fondo grafito: los paneles blancos quedan como hojas sobre la mesa. */
+  --fondo-app: #34393f;
+  --sobre-fondo: #cfd6de;
   --white: #ffffff;
   --radius-lg: 18px;
   --radius-md: 12px;
@@ -42,7 +45,7 @@ body {
   margin: 0;
   font-family: var(--font-body);
   color: var(--ink-900);
-  background: var(--surface-100);
+  background: var(--fondo-app);
   line-height: 1.5;
 }
 
@@ -514,7 +517,7 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--ink-400);
+  color: var(--sobre-fondo);
   text-align: center;
   margin-bottom: 4px;
 }

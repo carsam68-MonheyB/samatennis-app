@@ -32,7 +32,13 @@
 
   // ------------------------------------------------------------- pestañas
 
+  // Llave del cuadro con el formulario de captura abierto. Se recuerda para
+  // que un repintado —por ejemplo, un cambio que llega de la nube mientras se
+  // captura— no cierre el formulario en la cara de quien está anotando.
+  var llaveAbierta = "";
+
   function mostrarVista(nombre) {
+    if (nombre !== "cuadro") llaveAbierta = "";
     vistaActual = nombre;
     $$(".tab").forEach(function (tab) {
       tab.classList.toggle("is-active", tab.dataset.vista === nombre);
@@ -643,6 +649,7 @@
       : "";
 
     $("#cuadro").innerHTML = columnas.join("") + campeon;
+    if (llaveAbierta) abrirFormularioLlave(llaveAbierta);
   }
 
   /** Abre el formulario de marcador dentro de una llave del cuadro. */
@@ -657,6 +664,7 @@
     var guardado = (Store.categoria() || { cuadro: {} }).cuadro[id] || {};
     var contenedor = $('[data-form="' + id + '"]');
     if (!contenedor) return;
+    llaveAbierta = id;
     contenedor.hidden = false;
     contenedor.innerHTML = tarjetaPartido(
       {
@@ -744,7 +752,48 @@
     aplicarModoLectura();
   }
 
+  /**
+   * Dónde está el cursor dentro de una tarjeta de partido. Al repintar por un
+   * cambio propio o de la nube hay que devolverlo a su sitio: si no, cada
+   * número capturado saca a quien está anotando.
+   */
+  function huellaDelFoco() {
+    var activo = document.activeElement;
+    if (!activo || !activo.matches || !activo.matches("input, select")) return null;
+    var tarjeta = activo.closest(".partido");
+    if (!tarjeta) return null;
+    var huella = {
+      partido: tarjeta.dataset.partido,
+      ambito: tarjeta.dataset.ambito || "grupo",
+      campo: activo.dataset.campo || "",
+      set: activo.dataset.set,
+      lado: activo.dataset.lado,
+      tb: activo.dataset.tb ? "1" : "",
+      cursor: null
+    };
+    // Los input de tipo number no permiten leer la posición del cursor.
+    try { huella.cursor = activo.selectionStart; } catch (error) { huella.cursor = null; }
+    return huella;
+  }
+
+  function restaurarFoco(huella) {
+    if (!huella) return;
+    var tarjeta = $('.partido[data-ambito="' + huella.ambito + '"][data-partido="' + huella.partido + '"]');
+    if (!tarjeta) return;
+    var selector = huella.campo
+      ? '[data-campo="' + huella.campo + '"]'
+      : 'input[data-set="' + huella.set + '"][data-lado="' + huella.lado + '"]' +
+        (huella.tb ? "[data-tb]" : ":not([data-tb])");
+    var entrada = $(selector, tarjeta);
+    if (!entrada || entrada === document.activeElement) return;
+    entrada.focus();
+    if (huella.cursor != null) {
+      try { entrada.setSelectionRange(huella.cursor, huella.cursor); } catch (error) { /* number input */ }
+    }
+  }
+
   function render() {
+    var foco = huellaDelFoco();
     pintarCabecera();
     pintarSelectorCategoria();
     if (vistaActual === "categorias") pintarCategorias();
@@ -756,6 +805,7 @@
     if (vistaActual === "ranking") pintarRanking();
     if (vistaActual === "cuadro") pintarCuadro();
     aplicarModoLectura();
+    restaurarFoco(foco);
   }
 
   // ------------------------------------------------------------- eventos
@@ -809,6 +859,7 @@
 
     if (evento.target.closest("[data-cerrar]")) {
       guardarMarcador(tarjeta);
+      llaveAbierta = "";
       pintarCuadro();
       return true;
     }
