@@ -502,6 +502,9 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
 .resultado-texto { color: var(--ink-600); }
 .resultado-texto strong { color: var(--court-700); }
 
+/* Marcador que no se puede jugar: se avisa y no se guarda. */
+.resultado-error { color: #b3261e; font-weight: 600; }
+
 /* ---------- Cuadro ---------- */
 
 /*

@@ -164,6 +164,85 @@
     return esMismoJugador(ganador, partido.jugadorA) ? partido.jugadorB : partido.jugadorA;
   }
 
+  // ------------------------------------------- 2b. Marcadores con sentido
+
+  /**
+   * Un set se gana con 6 juegos y dos de diferencia (6-0 a 6-4), con 7-5, o
+   * con 7-6 cuando se define en tie-break. Nada más: 6-5, 6-6 o 7-2 no existen.
+   */
+  function setValidoDeJuegos(unos, otros) {
+    var alto = Math.max(numero(unos), numero(otros));
+    var bajo = Math.min(numero(unos), numero(otros));
+    if (alto === 6) return bajo <= 4;
+    if (alto === 7) return bajo === 5 || bajo === 6;
+    return false;
+  }
+
+  /**
+   * El super tie-break se gana a 10 puntos con dos de diferencia: 10-0 a 10-8,
+   * y de ahí en adelante siempre por dos (11-9, 12-10, 15-13).
+   */
+  function superMuerteValida(unos, otros) {
+    var alto = Math.max(numero(unos), numero(otros));
+    var bajo = Math.min(numero(unos), numero(otros));
+    if (alto < 10) return false;
+    if (alto === 10) return bajo <= 8;
+    return alto - bajo === 2;
+  }
+
+  /** Los puntos del set, ya sea en juegos o en puntos de super muerte. */
+  function puntosDelSet(set, esSuperMuerte) {
+    if (!set) return null;
+    var a = numero(esSuperMuerte ? set.tbA : set.a);
+    var b = numero(esSuperMuerte ? set.tbB : set.b);
+    if (a === 0 && b === 0) return null;
+    return { a: a, b: b };
+  }
+
+  /**
+   * Revisa que el marcador se pueda jugar de verdad y devuelve los problemas
+   * en texto, listos para enseñárselos a quien captura. Un partido a medias no
+   * es un problema: los sets sin capturar simplemente no se revisan.
+   */
+  function erroresDeMarcador(partido) {
+    var sets = (partido && partido.sets) || [];
+    var conSuperMuerte = !partido || partido.superMuerte !== false;
+    var errores = [];
+    var capturados = [];
+    var ganadores = [];
+
+    for (var i = 0; i < 3; i++) {
+      var esSuper = conSuperMuerte && i === 2;
+      var puntos = puntosDelSet(sets[i], esSuper);
+      capturados.push(!!puntos);
+      if (!puntos) {
+        ganadores.push(null);
+        continue;
+      }
+      ganadores.push(puntos.a > puntos.b ? "a" : puntos.b > puntos.a ? "b" : null);
+
+      if (esSuper) {
+        if (!superMuerteValida(puntos.a, puntos.b)) {
+          errores.push("Super muerte " + puntos.a + "-" + puntos.b +
+            ": se gana a 10 puntos con dos de diferencia (10-8, 11-9, 15-13…).");
+        }
+      } else if (!setValidoDeJuegos(puntos.a, puntos.b)) {
+        errores.push("Set " + (i + 1) + " " + puntos.a + "-" + puntos.b +
+          ": un set se gana 6-0, 6-1, 6-2, 6-3, 6-4, 7-5 o 7-6.");
+      }
+    }
+
+    if (capturados[1] && !capturados[0]) errores.push("Falta capturar el primer set.");
+    if (capturados[2] && !capturados[1]) errores.push("Falta capturar el segundo set.");
+
+    // El tercero sólo se juega si el partido va 1-1.
+    if (!errores.length && capturados[2] && ganadores[0] && ganadores[0] === ganadores[1]) {
+      errores.push("El tercer set sobra: el partido ya estaba ganado 2-0.");
+    }
+
+    return errores;
+  }
+
   /**
    * Marcador legible, siempre desde el lado del ganador (como en la hoja
    * "Resultados"): "6-3, 7-6(5)" o "6-4, 3-6, [10-7]".
@@ -583,6 +662,9 @@
     ganadorPartido: ganadorPartido,
     perdedorPartido: perdedorPartido,
     marcador: marcador,
+    setValidoDeJuegos: setValidoDeJuegos,
+    superMuerteValida: superMuerteValida,
+    erroresDeMarcador: erroresDeMarcador,
     statsJugador: statsJugador,
     puntajeJugador: puntajeJugador,
     enfrentamientoDirecto: enfrentamientoDirecto,

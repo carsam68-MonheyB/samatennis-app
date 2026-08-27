@@ -266,12 +266,29 @@
     return "<div>" + html + "</div>";
   }
 
-  function pieDeTarjeta(partido, esCuadro) {
+  /**
+   * Lo que se le dice a quien captura: quién ganó, o por qué ese marcador no
+   * se puede jugar. Mientras haya un error el partido no se guarda.
+   */
+  /** Nadie gana con un marcador imposible: primero tiene que cuadrar. */
+  function ganadorSiCuadra(partido) {
+    return Model.erroresDeMarcador(partido).length ? null : Model.ganadorPartido(partido);
+  }
+
+  function textoDeResultado(partido) {
+    var errores = Model.erroresDeMarcador(partido);
+    if (errores.length) {
+      return '<span class="resultado-error">' + errores.map(escapar).join(" ") + "</span>";
+    }
     var ganador = Model.ganadorPartido(partido);
+    return ganador
+      ? "Gana <strong>" + escapar(ganador) + "</strong> · " + escapar(Model.marcador(partido))
+      : "Sin resultado";
+  }
+
+  function pieDeTarjeta(partido, esCuadro) {
     return (
-      '<div class="resultado-texto">' +
-      (ganador ? "Gana <strong>" + escapar(ganador) + "</strong> · " + escapar(Model.marcador(partido)) : "Sin resultado") +
-      "</div>" +
+      '<div class="resultado-texto">' + textoDeResultado(partido) + "</div>" +
       '<div class="partido__acciones">' +
       '<span class="regla-super">' +
       (esSuperMuerte(partido)
@@ -289,7 +306,7 @@
   function tarjetaPartido(partido, opciones) {
     var config = opciones || {};
     var esCuadro = config.ambito === "cuadro";
-    var ganador = Model.ganadorPartido(partido);
+    var ganador = ganadorSiCuadra(partido);
     var ganaA = ganador && Model.esMismoJugador(ganador, partido.jugadorA);
     var ganaB = ganador && Model.esMismoJugador(ganador, partido.jugadorB);
 
@@ -387,15 +404,13 @@
   /** Refresca ganador, marcador y tie-breaks sin volver a dibujar la tarjeta. */
   function actualizarTarjeta(tarjeta) {
     var partido = partidoDeTarjeta(tarjeta);
-    var ganador = Model.ganadorPartido(partido);
+    var ganador = ganadorSiCuadra(partido);
     var nombres = $$(".marcador-grid .nombre", tarjeta);
 
     if (nombres[0]) nombres[0].classList.toggle("gana", !!ganador && Model.esMismoJugador(ganador, partido.jugadorA));
     if (nombres[1]) nombres[1].classList.toggle("gana", !!ganador && Model.esMismoJugador(ganador, partido.jugadorB));
 
-    $(".resultado-texto", tarjeta).innerHTML = ganador
-      ? "Gana <strong>" + escapar(ganador) + "</strong> · " + escapar(Model.marcador(partido))
-      : "Sin resultado";
+    $(".resultado-texto", tarjeta).innerHTML = textoDeResultado(partido);
 
     sincronizarTieBreaks(tarjeta, partido);
   }
@@ -420,14 +435,31 @@
       if (!partido) return;
     }
 
-    tarjeta.outerHTML = tarjetaPartido(partido, { titulo: tarjeta.dataset.titulo, ambito: tarjeta.dataset.ambito });
+    var ambito = tarjeta.dataset.ambito;
+    tarjeta.outerHTML = tarjetaPartido(partido, { titulo: tarjeta.dataset.titulo, ambito: ambito });
+    // outerHTML deja fuera al nodo viejo: hay que volver a buscar el nuevo.
+    aplicarPermisos($('.partido[data-ambito="' + ambito + '"][data-partido="' + id + '"]'));
   }
 
+  /** Guarda si el marcador se sostiene. Devuelve false si no se pudo. */
   function guardarMarcador(tarjeta) {
     var id = tarjeta.dataset.partido;
     var datos = leerMarcador(tarjeta);
+    var partido = {
+      id: id,
+      jugadorA: tarjeta.dataset.jugadorA,
+      jugadorB: tarjeta.dataset.jugadorB,
+      sets: datos.sets,
+      superMuerte: datos.superMuerte
+    };
+
+    // Un 6-5 o una super muerte 8-6 no existen: se avisa y no se guarda,
+    // para que un marcador imposible nunca llegue a las tablas.
+    if (Model.erroresDeMarcador(partido).length) return false;
+
     if (tarjeta.dataset.ambito === "cuadro") Store.setResultadoCuadro(id, datos.sets.length ? datos : null);
     else Store.setPartido(id, datos);
+    return true;
   }
 
   // ------------------------------------------------------------ resultados
@@ -456,6 +488,8 @@
           });
         }).join("")
       : '<div class="vacio-msg">Congela el sorteo para generar el calendario de partidos.</div>';
+
+    aplicarPermisos($("#lista-partidos"));
   }
 
   // ---------------------------------------------------------------- grupos
@@ -558,6 +592,8 @@
           );
         }).join("")
       : '<div class="vacio-msg">Arma los grupos desde la pestaña Sorteo.</div>';
+
+    aplicarPermisos($("#tablas-grupos"));
   }
 
   // --------------------------------------------------------------- ranking
@@ -691,6 +727,7 @@
       '<div class="cuadro__ala cuadro__ala--der">' + derecha + "</div>";
 
     if (llaveAbierta) abrirFormularioLlave(llaveAbierta);
+    aplicarPermisos($("#cuadro"));
   }
 
   /** Abre el formulario de marcador dentro de una llave del cuadro. */
@@ -717,6 +754,7 @@
       },
       { titulo: partido.id, ambito: "cuadro" }
     );
+    aplicarPermisos(contenedor);
   }
 
   // -------------------------------------------------------- inicio y KPIs
@@ -767,17 +805,28 @@
   var VISTAS_DE_ADMIN = ["categorias", "jugadores", "sorteo"];
 
   /** Deja la app en modo consulta para quien no puede capturar. */
-  function aplicarModoLectura() {
-    document.body.classList.toggle("solo-lectura", soloLectura);
-    $$(".app-main input, .app-main select, .app-main textarea").forEach(function (campo) {
+  /**
+   * Deja una parte de la pantalla como corresponde al papel de quien mira.
+   * Hay que llamarla después de cada repintado parcial: si no, los campos
+   * recién creados nacen habilitados y el modo consulta podría capturar.
+   */
+  function aplicarPermisos(raiz) {
+    var zona = raiz || document;
+    $$("input, select, textarea", zona).forEach(function (campo) {
+      if (!campo.closest(".app-main")) return;
       campo.disabled = soloLectura;
     });
-    $$("[data-solo-admin]").forEach(function (nodo) {
+    $$("[data-solo-admin]", zona).forEach(function (nodo) {
       nodo.hidden = soloLectura;
     });
-    $$("[data-solo-dueno]").forEach(function (nodo) {
+    $$("[data-solo-dueno]", zona).forEach(function (nodo) {
       nodo.hidden = soloLectura || soloDueno;
     });
+  }
+
+  function aplicarModoLectura() {
+    document.body.classList.toggle("solo-lectura", soloLectura);
+    aplicarPermisos(document);
 
     // Si el espectador estaba parado en una vista de administración, sacarlo.
     if (soloLectura && VISTAS_DE_ADMIN.indexOf(vistaActual) !== -1) {
@@ -871,6 +920,7 @@
 
   /** Mientras se escribe: sólo refrescamos la tarjeta, sin re-dibujar la vista. */
   function alEscribirEnPartido(evento) {
+    if (soloLectura) return;
     var tarjeta = evento.target.closest(".partido");
     if (!tarjeta || !evento.target.matches("input[data-set]")) return;
     limitarCaptura(evento.target);
@@ -878,6 +928,7 @@
   }
 
   function alCambiarEnPartido(evento) {
+    if (soloLectura) return;
     var tarjeta = evento.target.closest(".partido");
     if (!tarjeta) return;
 
@@ -896,13 +947,17 @@
   }
 
   function alClicEnPartido(evento) {
+    if (soloLectura) return false;
     var tarjeta = evento.target.closest(".partido");
     if (!tarjeta) return false;
 
     var esCuadro = tarjeta.dataset.ambito === "cuadro";
 
     if (evento.target.closest("[data-cerrar]")) {
-      guardarMarcador(tarjeta);
+      if (!guardarMarcador(tarjeta)) {
+        actualizarTarjeta(tarjeta);
+        return true;
+      }
       llaveAbierta = "";
       pintarCuadro();
       return true;

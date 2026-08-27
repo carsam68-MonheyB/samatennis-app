@@ -241,6 +241,10 @@ por cupos, la jerarquía de siembra y la resolución del cuadro completo.
 4. **Resultados.** Los dos primeros sets se anotan por juegos y no pasan de 7. El
    tercero es super muerte a 10 puntos: cuenta como set ganado (7-6) pero sus puntos
    no suman juegos. El botón *W.O.* registra un default como 6-0, 6-0.
+   La captura valida que el marcador se pueda jugar: un set se gana 6-0 a 6-4, 7-5 o
+   7-6, y la super muerte a 10 con dos de diferencia. Lo que no cuadra se marca en
+   rojo, no corona a nadie y no se guarda, así que a las tablas nunca llega un
+   marcador imposible.
 5. **Grupos, Ranking y Cuadro.** Se recalculan solos conforme capturas.
 
 **Exportar** descarga el torneo completo en JSON e **Importar** lo restaura: es la

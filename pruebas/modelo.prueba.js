@@ -171,6 +171,49 @@ ok(!!completo.campeon, "con el cuadro completo hay campeón: " + (completo.campe
 ok(!!completo.finalista, "y finalista: " + (completo.finalista || {}).jugador);
 
 // ---------------------------------------------------------------------------
+console.log("\nMarcadores: sólo se aceptan los que se pueden jugar");
+
+[[6, 0], [6, 4], [7, 5], [7, 6], [0, 6], [5, 7]].forEach(([a, b]) =>
+  ok(Model.setValidoDeJuegos(a, b), `${a}-${b} es un set legal`));
+[[6, 5], [6, 6], [7, 2], [5, 3], [8, 6], [7, 7], [0, 0]].forEach(([a, b]) =>
+  ok(!Model.setValidoDeJuegos(a, b), `${a}-${b} no es un set legal`));
+
+[[10, 0], [10, 8], [11, 9], [12, 10], [15, 13], [8, 10]].forEach(([a, b]) =>
+  ok(Model.superMuerteValida(a, b), `super muerte ${a}-${b} es válida`));
+[[9, 7], [10, 9], [11, 8], [12, 9], [5, 3]].forEach(([a, b]) =>
+  ok(!Model.superMuerteValida(a, b), `super muerte ${a}-${b} no es válida`));
+
+const sinErrores = (sets, superMuerte) =>
+  Model.erroresDeMarcador({ jugadorA: "A", jugadorB: "B", sets, superMuerte });
+
+igual(sinErrores([{ a: 6, b: 3 }, { a: 6, b: 1 }]), [], "6-3, 6-1 no tiene nada que reclamar");
+igual(sinErrores([{ a: 6, b: 3 }]), [], "un partido a medias tampoco: falta jugar");
+igual(sinErrores([]), [], "y uno sin capturar menos");
+igual(
+  sinErrores([{ a: 6, b: 4 }, { a: 3, b: 6 }, { a: 7, b: 6, tbA: 10, tbB: 7 }]),
+  [],
+  "6-4, 3-6, [10-7] es un partido completo con super muerte"
+);
+ok(sinErrores([{ a: 6, b: 5 }]).length === 1, "un 6-5 se reclama");
+ok(/6-0, 6-1/.test(sinErrores([{ a: 6, b: 5 }])[0]), "y se dice cómo sí: " + sinErrores([{ a: 6, b: 5 }])[0]);
+ok(
+  sinErrores([{ a: 6, b: 4 }, { a: 3, b: 6 }, { a: 7, b: 6, tbA: 8, tbB: 6 }])[0].indexOf("Super muerte") === 0,
+  "una super muerte 8-6 también"
+);
+ok(
+  sinErrores([null, { a: 6, b: 4 }]).some((e) => /Falta capturar el primer set/.test(e)),
+  "un hueco en los sets se reclama"
+);
+ok(
+  sinErrores([{ a: 6, b: 4 }, { a: 6, b: 2 }, { a: 7, b: 6, tbA: 10, tbB: 5 }])
+    .some((e) => /tercer set sobra/.test(e)),
+  "y un tercer set después de un 2-0"
+);
+
+// Un W.O. se registra 6-0, 6-0: tiene que pasar la validación.
+igual(sinErrores([{ a: 6, b: 0 }, { a: 6, b: 0 }]), [], "el W.O. sigue siendo un marcador válido");
+
+// ---------------------------------------------------------------------------
 console.log("\nTamaños de grupo: el número de grupos define el reparto");
 
 igual(Model.tamanosDeGrupo(28, 9), [3, 3, 3, 3, 3, 3, 3, 3, 4],
