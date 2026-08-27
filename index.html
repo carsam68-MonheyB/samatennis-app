@@ -302,8 +302,34 @@
       <h2>Cuadro final</h2>
       <p class="nota" id="nota-cuadro"></p>
     </div>
-    <div class="cuadro-scroll">
-      <div id="cuadro" class="cuadro"></div>
+
+    <!-- El cuadro se dibuja en espejo sobre una cancha, como el tablero que
+         se cuelga en el club: la mitad de arriba avanza hacia el centro desde
+         la izquierda y la de abajo desde la derecha. -->
+    <div class="tablero">
+      <svg class="hero__cancha" viewBox="-5 -4 88 44" preserveAspectRatio="none" aria-hidden="true">
+        <rect class="cancha__interior" x="4.5" y="0" width="69" height="36" />
+        <g class="cancha__lineas">
+          <rect x="0" y="0" width="78" height="36" />
+          <line x1="0" y1="4.5" x2="78" y2="4.5" />
+          <line x1="0" y1="31.5" x2="78" y2="31.5" />
+          <line x1="18" y1="4.5" x2="18" y2="31.5" />
+          <line x1="60" y1="4.5" x2="60" y2="31.5" />
+          <line x1="18" y1="18" x2="60" y2="18" />
+          <line x1="0" y1="17" x2="0" y2="19" />
+          <line x1="78" y1="17" x2="78" y2="19" />
+        </g>
+        <line class="cancha__red" x1="39" y1="-3" x2="39" y2="39" />
+      </svg>
+      <div class="tablero__marco">
+        <div class="tablero__encabezado">
+          <div class="tablero__logo" id="cuadro-logo" hidden><img id="cuadro-logo-img" alt="" /></div>
+          <div class="tablero__titulo" id="cuadro-titulo"></div>
+        </div>
+        <div class="cuadro-scroll">
+          <div id="cuadro" class="cuadro"></div>
+        </div>
+      </div>
     </div>
   </section>
 

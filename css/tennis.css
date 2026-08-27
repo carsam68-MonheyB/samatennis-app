@@ -503,35 +503,114 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
 .resultado-texto strong { color: var(--court-700); }
 
 /* ---------- Cuadro ---------- */
+
+/*
+ * El tablero: una cancha grafito con marco blanco, como el cuadro impreso que
+ * se cuelga en el club. Adentro va el logo del torneo y el cuadro en espejo.
+ */
+.tablero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, #262b31, #3c434b 60%, #2f353c);
+  padding: 18px;
+  margin-bottom: 20px;
+  /* Un cuadro de 32 no cabe en el ancho del contenido: el tablero se sale
+     de la columna y se centra en la pantalla, como el cartel del club. */
+  width: min(1680px, calc(100vw - 32px));
+  margin-left: 50%;
+  transform: translateX(-50%);
+}
+
+.tablero__marco {
+  position: relative;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-md);
+  padding: 18px;
+}
+
+.tablero__encabezado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tablero__logo {
+  background: var(--white);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  max-width: 190px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28);
+}
+
+.tablero__logo img { display: block; max-width: 100%; max-height: 64px; object-fit: contain; }
+
+.tablero__titulo {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--white);
+  text-align: center;
+}
+
 .cuadro-scroll { overflow-x: auto; padding-bottom: 12px; }
 
-.cuadro { display: flex; gap: 18px; align-items: stretch; min-width: min-content; }
+.cuadro { display: flex; gap: 10px; align-items: stretch; min-width: min-content; }
 
-.ronda { display: flex; flex-direction: column; min-width: 235px; }
+/* Las dos alas del espejo y la final en medio. */
+.cuadro__ala { display: flex; gap: 10px; align-items: stretch; }
+
+.cuadro__centro {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 12px;
+  min-width: 180px;
+}
+
+.ronda { display: flex; flex-direction: column; min-width: 168px; }
 .ronda__llaves { flex: 1; display: flex; flex-direction: column; }
 .llave-slot { flex: 1; display: flex; align-items: center; padding: 5px 0; }
 .llave-slot > * { width: 100%; }
 
 .ronda__titulo {
   font-family: var(--font-display);
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   color: var(--sobre-fondo);
   text-align: center;
   margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .llave {
   background: var(--white);
   border-radius: var(--radius-md);
   padding: 8px 10px;
-  box-shadow: 0 3px 12px rgba(12, 35, 64, 0.07);
-  border-left: 3px solid var(--line-200);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+  border-left: 3px solid var(--acento, var(--line-200));
 }
 
-.llave.jugable { border-left-color: var(--ball-500); }
-.llave.resuelta { border-left-color: var(--court-600); }
+.llave.jugable { --acento: var(--ball-500); }
+.llave.resuelta { --acento: var(--court-600); }
+
+/* En el ala derecha la llave se lee de derecha a izquierda. */
+.llave--der {
+  border-left: 0;
+  border-right: 3px solid var(--acento, var(--line-200));
+  text-align: right;
+}
+
+.llave--der .llave__lado { flex-direction: row-reverse; }
+.llave--der .llave__editar { text-align: right; }
 
 .llave__lado {
   display: flex;

@@ -118,6 +118,12 @@ Los lugares que sobran son BYE y los reciben los mejores sembrados. El cuadro se
 arma sólo por número de siembra: dos jugadores del mismo grupo pueden volver a
 encontrarse en la primera ronda.
 
+Se dibuja **en espejo**, como el tablero que se cuelga en el club: la mitad de
+arriba del sorteo avanza de izquierda a derecha, la de abajo de derecha a
+izquierda, y la final queda al centro. Va sobre una cancha grafito con marco
+blanco y, arriba, la imagen del club y el nombre del torneo. En pantallas
+angostas el tablero se desplaza de lado; la página no.
+
 ## Diferencias intencionales con el archivo original
 
 1. **Reparto de los BYE.** En la hoja `Draw` los dos clasificados peor rankeados

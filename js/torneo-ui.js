@@ -594,6 +594,41 @@
     );
   }
 
+  function llaveDeCuadro(partido, esPrimeraRonda, ala) {
+    var jugable = partido.ladoA && partido.ladoB;
+    var clase = partido.ganador ? "resuelta" : jugable ? "jugable" : "";
+    var marcador = partido.marcador ? '<div class="llave__marcador">' + escapar(partido.marcador) + "</div>" : "";
+    var boton = jugable
+      ? '<div class="llave__editar" data-solo-admin><button type="button" class="btn btn--sm btn--ghost" data-llave="' +
+        escapar(partido.id) + '">' + (partido.ganador ? "Editar marcador" : "Capturar marcador") + "</button></div>"
+      : "";
+    var ganaA = partido.ganador && partido.ladoA && partido.ganador.jugador === partido.ladoA.jugador;
+    var ganaB = partido.ganador && partido.ladoB && partido.ganador.jugador === partido.ladoB.jugador;
+
+    return (
+      '<div class="llave-slot"><div class="llave ' + clase + (ala === "der" ? " llave--der" : "") + '">' +
+      ladoDeLlave(partido.ladoA, ganaA, esPrimeraRonda) +
+      ladoDeLlave(partido.ladoB, ganaB, esPrimeraRonda) +
+      marcador + boton +
+      '<div class="llave__form" data-form="' + escapar(partido.id) + '" hidden></div>' +
+      "</div></div>"
+    );
+  }
+
+  function columnaDeRonda(ronda, indiceRonda, partidos, ala) {
+    var llaves = partidos.map(function (partido) {
+      return llaveDeCuadro(partido, indiceRonda === 0, ala);
+    }).join("");
+
+    return '<div class="ronda ronda--r' + indiceRonda + '"><div class="ronda__titulo">' +
+      escapar(ronda.nombre) + '</div><div class="ronda__llaves">' + llaves + "</div></div>";
+  }
+
+  /**
+   * Cuadro en espejo: la mitad de arriba del sorteo avanza de izquierda a
+   * derecha, la de abajo de derecha a izquierda, y la final queda al centro.
+   * Es el tablero de toda la vida, el que se lee de un vistazo.
+   */
   function pintarCuadro() {
     var datos = Store.derivado();
     var cuadro = datos.cuadro;
@@ -613,42 +648,45 @@
           "avanzan solos a la siguiente ronda."
         : ", sin BYE: todos arrancan en la primera ronda.");
 
-    var columnas = cuadro.rondas.map(function (ronda, indiceRonda) {
-      var esPrimeraRonda = indiceRonda === 0;
-      var llaves = ronda.partidos.map(function (partido) {
-        var jugable = partido.ladoA && partido.ladoB;
-        var clase = partido.ganador ? "resuelta" : jugable ? "jugable" : "";
-        var marcador = partido.marcador ? '<div class="llave__marcador">' + escapar(partido.marcador) + "</div>" : "";
-        var boton = jugable
-          ? '<div class="llave__editar" data-solo-admin><button type="button" class="btn btn--sm btn--ghost" data-llave="' +
-            escapar(partido.id) + '">' + (partido.ganador ? "Editar marcador" : "Capturar marcador") + "</button></div>"
-          : "";
-        var ganaA = partido.ganador && partido.ladoA && partido.ganador.jugador === partido.ladoA.jugador;
-        var ganaB = partido.ganador && partido.ladoB && partido.ganador.jugador === partido.ladoB.jugador;
+    var rondas = cuadro.rondas;
+    var laFinal = rondas[rondas.length - 1];
+    var previas = rondas.slice(0, -1);
 
-        return (
-          '<div class="llave-slot"><div class="llave ' + clase + '">' +
-          ladoDeLlave(partido.ladoA, ganaA, esPrimeraRonda) +
-          ladoDeLlave(partido.ladoB, ganaB, esPrimeraRonda) +
-          marcador + boton +
-          '<div class="llave__form" data-form="' + escapar(partido.id) + '" hidden></div>' +
-          "</div></div>"
-        );
-      }).join("");
+    function mitad(ronda, ala) {
+      var corte = Math.ceil(ronda.partidos.length / 2);
+      return ala === "izq" ? ronda.partidos.slice(0, corte) : ronda.partidos.slice(corte);
+    }
 
-      return '<div class="ronda"><div class="ronda__titulo">' + escapar(ronda.nombre) +
-        '</div><div class="ronda__llaves">' + llaves + "</div></div>";
-    });
+    var izquierda = previas.map(function (ronda, i) {
+      return columnaDeRonda(ronda, i, mitad(ronda, "izq"), "izq");
+    }).join("");
+
+    // El ala derecha se lee de adentro hacia afuera: semifinal primero.
+    var derecha = previas.map(function (ronda, i) {
+      return columnaDeRonda(ronda, i, mitad(ronda, "der"), "der");
+    }).reverse().join("");
 
     var campeon = cuadro.campeon
-      ? '<div class="ronda"><div class="ronda__titulo">Campeón</div>' +
-        '<div class="ronda__llaves"><div class="llave-slot"><div class="campeon">' +
-        "<span>Campeón</span><strong>" + escapar(cuadro.campeon.jugador) + "</strong>" +
+      ? '<div class="campeon"><span>Campeón</span><strong>' + escapar(cuadro.campeon.jugador) + "</strong>" +
         (cuadro.finalista ? "<small>Finalista: " + escapar(cuadro.finalista.jugador) + "</small>" : "") +
-        "</div></div></div></div>"
+        "</div>"
       : "";
 
-    $("#cuadro").innerHTML = columnas.join("") + campeon;
+    var centro =
+      '<div class="cuadro__centro">' +
+      '<div class="ronda ronda--final"><div class="ronda__titulo">' + escapar(laFinal.nombre) + "</div>" +
+      '<div class="ronda__llaves">' +
+      laFinal.partidos.map(function (partido) {
+        return llaveDeCuadro(partido, rondas.length === 1, "");
+      }).join("") +
+      "</div></div>" + campeon +
+      "</div>";
+
+    $("#cuadro").innerHTML =
+      '<div class="cuadro__ala cuadro__ala--izq">' + izquierda + "</div>" +
+      centro +
+      '<div class="cuadro__ala cuadro__ala--der">' + derecha + "</div>";
+
     if (llaveAbierta) abrirFormularioLlave(llaveAbierta);
   }
 
@@ -712,6 +750,9 @@
     var categoria = Store.categoria();
     var partes = [torneo.nombre, categoria && categoria.nombre].filter(Boolean);
     $("#brand-torneo").textContent = partes.join(" · ") || "Torneo sin nombre";
+
+    var tablero = $("#cuadro-titulo");
+    if (tablero) tablero.textContent = partes.join(" · ") || "Cuadro final";
   }
 
   var soloLectura = false;

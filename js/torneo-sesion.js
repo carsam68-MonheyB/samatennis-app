@@ -121,6 +121,12 @@
       if (logo) $("#marca-club-img").src = logo;
     }
 
+    var enTablero = $("#cuadro-logo");
+    if (enTablero) {
+      enTablero.hidden = !logo;
+      if (logo) $("#cuadro-logo-img").src = logo;
+    }
+
     var vista = $("#logo-vista");
     if (vista) {
       vista.innerHTML = logo
