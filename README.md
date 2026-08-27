@@ -166,8 +166,13 @@ La app funciona sola contra `localStorage`. Conectada a Firebase, además:
 | Nombre, sede, fechas e imagen del club | ✓ | — | — |
 | Categorías, jugadores y sorteo | ✓ | ✓ | — |
 | Calendario y captura de resultados | ✓ | ✓ | — |
+| Cupos de clasificación y desempate manual | ✓ | ✓ | — |
 | Exportar un respaldo | ✓ | ✓ | — |
 | Ver resultados, tablas, ranking y cuadro | ✓ | ✓ | ✓ |
+
+En las tablas de grupo, quien sólo consulta ve los datos del torneo —partidos
+jugados (que son los ganados más los perdidos), sets, juegos y puntaje— pero no
+la columna **Des.**, que es un control de captura, no un resultado.
 
 La identidad del torneo es del dueño; el administrador trabaja dentro del
 torneo que le asignaron.

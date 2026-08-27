@@ -533,13 +533,14 @@
               '<td class="jugador">' + escapar(fila.jugador) +
               (fila.esCabeza ? ' <span class="badge badge--cg">CG</span>' : "") +
               (fila.clasificado ? ' <span class="badge badge--ok" title="Clasifica al cuadro final">✓</span>' : "") + "</td>" +
+              '<td class="num">' + fila.pj + "</td>" +
               '<td class="num">' + fila.pg + "-" + fila.pp + "</td>" +
               '<td class="num">' + fila.sg + "-" + fila.sp + "</td>" +
               '<td class="num">' + pct(fila.pctSets) + "</td>" +
               '<td class="num">' + fila.jg + "-" + fila.jp + "</td>" +
               '<td class="num">' + pct(fila.pctJuegos) + "</td>" +
               '<td class="num"><strong>' + puntos(fila.puntaje) + "</strong></td>" +
-              '<td><select class="select-desempate" data-desempate="' + escapar(fila.jugador) + '">' +
+              '<td data-solo-admin><select class="select-desempate" data-desempate="' + escapar(fila.jugador) + '">' +
               opciones + "</select></td></tr>"
             );
           }).join("");
@@ -548,9 +549,10 @@
             '<div class="grupo-card"><h3>' + escapar(tabla.grupo.nombre) +
             "<small>CG: " + escapar(tabla.grupo.cabeza) + "</small></h3>" +
             '<div class="tabla-wrap"><table><thead><tr>' +
-            '<th class="num">#</th><th>Jugador</th><th class="num">PG-PP</th><th class="num">Sets</th>' +
+            '<th class="num">#</th><th>Jugador</th><th class="num" title="Partidos jugados">PJ</th>' +
+            '<th class="num" title="Partidos ganados - perdidos">PG-PP</th><th class="num">Sets</th>' +
             '<th class="num">%S</th><th class="num">Juegos</th><th class="num">%J</th>' +
-            '<th class="num">Puntaje</th><th>Des.</th>' +
+            '<th class="num">Puntaje</th><th data-solo-admin>Des.</th>' +
             "</tr></thead><tbody>" + filas + "</tbody></table></div></div>"
           );
         }).join("")
