@@ -29,8 +29,13 @@
       subcategoria: base.subcategoria || "",
       modalidad: base.modalidad || "Singles",
       nombre: base.nombre || "Categoría",
-      cabezas: [],
+      // Todos los jugadores de la categoría. Las cabezas de grupo se eligen
+      // de aquí mismo: son un subconjunto de los inscritos, no otra lista.
       inscritos: [],
+      cabezas: [],
+      // Cuántos grupos quiere el torneo. Define cuántas cabezas hay que marcar
+      // y de cuántos jugadores queda cada grupo. 0 = todavía sin decidir.
+      numeroGrupos: 0,
       sorteo: { congelado: false, orden: [] },
       grupos: [],
       partidos: [],
@@ -71,14 +76,54 @@
     return { cupos: ["todos", "todos"] };
   }
 
+  function mismoNombre(uno, otro) {
+    return Model.esMismoJugador(uno, otro);
+  }
+
+  function contiene(lista, nombre) {
+    return (lista || []).some(function (otro) { return mismoNombre(otro, nombre); });
+  }
+
+  /**
+   * Antes las cabezas de grupo eran una lista aparte de los inscritos. Ahora
+   * los inscritos son todos y las cabezas se marcan entre ellos, así que a los
+   * torneos guardados con el formato viejo se les suman las cabezas a la lista.
+   */
+  function unirCabezasConInscritos(cabezas, inscritos) {
+    var todos = (cabezas || []).map(Model.normalizar).filter(Boolean);
+    (inscritos || []).map(Model.normalizar).filter(Boolean).forEach(function (nombre) {
+      if (!contiene(todos, nombre)) todos.push(nombre);
+    });
+    return todos;
+  }
+
+  /**
+   * El tercer set es super muerte a 10 puntos. Un partido viejo que ya tenga
+   * un tercer set capturado con juegos se respeta tal como se guardó.
+   */
+  function normalizarPartido(partido) {
+    var limpio = Object.assign({}, partido || {});
+    if (typeof limpio.superMuerte !== "boolean") {
+      var tercero = (limpio.sets || [])[2];
+      var terceroConJuegos = !!tercero && tercero.tbA == null && tercero.tbB == null &&
+        (Number(tercero.a) || Number(tercero.b));
+      limpio.superMuerte = !terceroConJuegos;
+    }
+    return limpio;
+  }
+
   function normalizarCategoria(datos) {
     var limpia = Object.assign(categoriaVacia(), datos || {});
     limpia.sorteo = Object.assign({ congelado: false, orden: [] }, (datos && datos.sorteo) || {});
     limpia.clasifican = normalizarClasifican(datos);
-    limpia.cabezas = limpia.cabezas || [];
-    limpia.inscritos = limpia.inscritos || [];
+    limpia.inscritos = unirCabezasConInscritos(limpia.cabezas, limpia.inscritos);
+    limpia.cabezas = (limpia.cabezas || []).map(Model.normalizar).filter(function (nombre) {
+      return nombre && contiene(limpia.inscritos, nombre);
+    });
+    limpia.numeroGrupos = Math.max(0, Math.floor(Number(limpia.numeroGrupos) || 0)) ||
+      limpia.cabezas.length || (limpia.grupos || []).length;
     limpia.grupos = limpia.grupos || [];
-    limpia.partidos = limpia.partidos || [];
+    limpia.partidos = (limpia.partidos || []).map(normalizarPartido);
     limpia.desempates = limpia.desempates || {};
     limpia.cuadro = limpia.cuadro || {};
     delete limpia.clasificanPorGrupo;
@@ -229,7 +274,7 @@
       return Model.ganadorPartido(partido);
     }).length;
     return {
-      jugadores: (cat.cabezas || []).length + (cat.inscritos || []).length,
+      jugadores: (cat.inscritos || []).length,
       grupos: (cat.grupos || []).length,
       partidos: (cat.partidos || []).length,
       jugados: jugados,
@@ -239,10 +284,15 @@
 
   // --------------------------------------------------------------- jugadores
 
+  /** Marca como cabezas de grupo a jugadores que ya están inscritos. */
   function setCabezas(lista) {
     var cat = categoria();
     if (!cat) return;
-    cat.cabezas = (lista || []).map(Model.normalizar).filter(Boolean);
+    var nombres = (lista || []).map(Model.normalizar).filter(Boolean);
+    nombres.forEach(function (nombre) {
+      if (!contiene(cat.inscritos, nombre)) cat.inscritos.push(nombre);
+    });
+    cat.cabezas = nombres;
     guardarCategoria();
   }
 
@@ -250,6 +300,50 @@
     var cat = categoria();
     if (!cat) return;
     cat.inscritos = (lista || []).map(Model.normalizar).filter(Boolean);
+    // Quien ya no está inscrito tampoco puede seguir siendo cabeza de grupo.
+    cat.cabezas = cat.cabezas.filter(function (nombre) {
+      return contiene(cat.inscritos, nombre);
+    });
+    guardarCategoria();
+  }
+
+  /** Cuántas cabezas faltan por marcar según los grupos configurados. */
+  function cabezasQueFaltan(cual) {
+    var cat = cual || categoria();
+    var objetivo = cat ? cat.numeroGrupos || 0 : 0;
+    return objetivo - ((cat && cat.cabezas) || []).length;
+  }
+
+  /**
+   * Marca o desmarca a un inscrito como cabeza de grupo.
+   * Devuelve el motivo por el que no se pudo, o "" si sí se pudo.
+   */
+  function alternarCabeza(nombre) {
+    var cat = categoria();
+    if (!cat) return "No hay categoría abierta.";
+    var limpio = Model.normalizar(nombre);
+    if (!contiene(cat.inscritos, limpio)) return "Ese jugador no está inscrito.";
+
+    if (contiene(cat.cabezas, limpio)) {
+      cat.cabezas = cat.cabezas.filter(function (otro) { return !mismoNombre(otro, limpio); });
+      guardarCategoria();
+      return "";
+    }
+
+    if (!cat.numeroGrupos) return "Primero indica de cuántos grupos será la categoría.";
+    if (cabezasQueFaltan(cat) <= 0) {
+      return "Ya están marcadas las " + cat.numeroGrupos + " cabezas que pide la configuración.";
+    }
+    cat.cabezas.push(limpio);
+    guardarCategoria();
+    return "";
+  }
+
+  /** De cuántos grupos será la categoría: define cuántas cabezas se marcan. */
+  function setNumeroGrupos(cuantos) {
+    var cat = categoria();
+    if (!cat) return;
+    cat.numeroGrupos = Math.max(0, Math.min(64, Math.floor(Number(cuantos) || 0)));
     guardarCategoria();
   }
 
@@ -290,10 +384,18 @@
 
   // ------------------------------------------------------------------ sorteo
 
+  /** Los inscritos que no son cabeza de grupo: son los que entran al sorteo. */
+  function porSortear(cual) {
+    var cat = cual || categoria();
+    return ((cat && cat.inscritos) || []).filter(function (nombre) {
+      return !contiene(cat.cabezas, nombre);
+    });
+  }
+
   function sortear() {
     var cat = categoria();
     if (!cat) return [];
-    cat.sorteo = { congelado: false, orden: Model.sortear(cat.inscritos) };
+    cat.sorteo = { congelado: false, orden: Model.sortear(porSortear(cat)) };
     guardarCategoria();
     return cat.sorteo.orden;
   }
@@ -347,7 +449,7 @@
           fecha: anterior ? anterior.fecha : "",
           hora: anterior ? anterior.hora : "",
           sets: anterior ? anterior.sets : [],
-          superMuerte: anterior ? !!anterior.superMuerte : false
+          superMuerte: anterior ? anterior.superMuerte !== false : true
         });
       });
     });
@@ -466,6 +568,10 @@
     identificadorDesde: identificadorDesde,
     aplicarRemoto: aplicarRemoto,
     setCabezas: setCabezas,
+    alternarCabeza: alternarCabeza,
+    cabezasQueFaltan: cabezasQueFaltan,
+    porSortear: porSortear,
+    setNumeroGrupos: setNumeroGrupos,
     setInscritos: setInscritos,
     sortear: sortear,
     congelarSorteo: congelarSorteo,

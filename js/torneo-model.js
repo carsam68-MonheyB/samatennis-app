@@ -60,6 +60,24 @@
   }
 
   /**
+   * Cuántos jugadores tocan por grupo, contando a la cabeza. Los grupos del
+   * final absorben a los sobrantes, igual que en repartirGrupos.
+   * Con 28 jugadores en 9 grupos: 3,3,3,3,3,3,3,3,4.
+   */
+  function tamanosDeGrupo(totalJugadores, numeroGrupos) {
+    var total = Math.max(0, Math.floor(numero(totalJugadores)));
+    var grupos = Math.max(0, Math.floor(numero(numeroGrupos)));
+    if (!grupos) return [];
+    var base = Math.floor(total / grupos);
+    var extras = total % grupos;
+    var tamanos = [];
+    for (var i = 0; i < grupos; i++) {
+      tamanos.push(base + (i >= grupos - extras ? 1 : 0));
+    }
+    return tamanos;
+  }
+
+  /**
    * Reparte el orden del sorteo entre los grupos, como las columnas A y B de
    * la hoja "Grupos": cada grupo arranca con su cabeza de serie y recibe
    * jugadores del sorteo en orden. Si sobran jugadores, los últimos grupos
@@ -558,6 +576,7 @@
     esMismoJugador: esMismoJugador,
     sortear: sortear,
     repartirGrupos: repartirGrupos,
+    tamanosDeGrupo: tamanosDeGrupo,
     calendarioGrupo: calendarioGrupo,
     setsValidos: setsValidos,
     setsPorLado: setsPorLado,

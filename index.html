@@ -158,9 +158,9 @@
     <div class="panel" data-solo-admin>
       <h2>Cómo funciona</h2>
       <ol class="pasos">
-        <li><strong>Jugadores.</strong> Captura las cabezas de grupo (una por grupo) y la lista de inscritos que entran al sorteo.</li>
+        <li><strong>Jugadores.</strong> Di de cuántos grupos será la categoría, captura a todos los inscritos y marca entre ellos a las cabezas de grupo.</li>
         <li><strong>Sorteo.</strong> Revuelve la lista las veces que quieras y congélalo: ahí se arman los grupos y su calendario.</li>
-        <li><strong>Resultados.</strong> Anota cada set. El tercer set puede capturarse como super muerte (match tie-break).</li>
+        <li><strong>Resultados.</strong> Anota los juegos de los dos primeros sets. El tercero es super muerte a 10 puntos.</li>
         <li><strong>Grupos.</strong> Se calculan sets y juegos ganados, sus porcentajes y el puntaje que define a los clasificados.</li>
         <li><strong>Ranking y cuadro.</strong> Los clasificados se ordenan por puntaje y siembran el cuadro final.</li>
       </ol>
@@ -183,15 +183,24 @@
   <!-- ------------------------------------------------------- Jugadores -->
   <section class="vista" id="vista-jugadores">
     <div class="panel">
-      <h2>Cabezas de grupo</h2>
-      <p class="nota">Una por grupo. El número de cabezas define cuántos grupos tendrá el torneo.</p>
-      <div id="lista-cabezas" class="lista-editable"></div>
-      <button type="button" class="btn btn--sm" id="btn-agregar-cabeza">+ Agregar cabeza de grupo</button>
+      <h2>Configuración de grupos</h2>
+      <p class="nota">
+        Empieza por decir de cuántos grupos será esta categoría. Ese número es el de cabezas de grupo
+        que hay que marcar, y junto con los inscritos define de cuántos jugadores queda cada grupo.
+      </p>
+      <label class="campo-grupos">
+        ¿De cuántos grupos?
+        <input type="number" id="num-grupos" min="0" max="64" step="1" value="0" />
+      </label>
+      <div id="resumen-grupos"></div>
     </div>
 
     <div class="panel">
-      <h2>Inscritos al sorteo</h2>
-      <p class="nota">Los demás jugadores. Se reparten entre los grupos en el orden que salga del sorteo.</p>
+      <h2>Inscritos</h2>
+      <p class="nota">
+        Todos los jugadores de la categoría. Marca <strong>CG</strong> a los que sean cabeza de grupo:
+        cada uno arranca un grupo y los demás se reparten en el orden que salga del sorteo.
+      </p>
       <div id="lista-inscritos" class="lista-editable"></div>
       <button type="button" class="btn btn--sm" id="btn-agregar-inscrito">+ Agregar jugador</button>
       <details class="bloque-pegar">
@@ -249,8 +258,8 @@
     <div class="panel">
       <h2>Captura de resultados</h2>
       <p class="nota">
-        Anota los juegos de cada set. Si el tercer set se juega como super muerte
-        (match tie-break a 10), actívalo: cuenta como set ganado pero sus puntos no suman juegos.
+        Los dos primeros sets se anotan por juegos y no pasan de 7. El tercero es super muerte
+        a 10 puntos: cuenta como set ganado, pero sus puntos no suman juegos.
       </p>
       <div class="filtro-grupos" id="filtro-grupos"></div>
     </div>
@@ -321,10 +330,12 @@
         El set se registra 7-6: el ganador suma 7 juegos y el perdedor 6. El marcador interno del
         tie-break (7-0, 7-5, 10-8) queda como constancia pero no cambia el conteo de juegos.
       </p>
-      <h3>5. Super muerte en lugar del tercer set</h3>
+      <h3>5. El tercer set es super muerte</h3>
       <p>
-        El match tie-break a 10 puntos cuenta como un set ganado/perdido, pero <strong>no suma juegos</strong>.
-        En un 6-4, 3-6, [10-7] los sets van 2-1 y los juegos sólo suman 9-10.
+        Los dos primeros sets se juegan a 6 juegos, con tie-break en el 6-6: por eso la captura
+        no acepta más de 7 juegos por set. En lugar de un tercer set completo se juega un
+        <strong>match tie-break a 10 puntos</strong>, que cuenta como un set ganado/perdido pero
+        <strong>no suma juegos</strong>. En un 6-4, 3-6, [10-7] los sets van 2-1 y los juegos sólo suman 9-10.
       </p>
       <h3>Desempate manual</h3>
       <p>

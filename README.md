@@ -214,11 +214,15 @@ por cupos, la jerarquía de siembra y la resolución del cuadro completo.
 ## Uso
 
 1. **Categorías.** Marca las que se van a jugar en el torneo.
-2. **Jugadores.** Captura las cabezas de grupo (una por grupo) y los inscritos de la categoría activa.
+2. **Jugadores.** Primero di de cuántos grupos será la categoría; ese número es el de
+   cabezas de grupo que hay que marcar. Captura a todos los inscritos y marca **CG**
+   a los que encabecen grupo: las cabezas salen de la misma lista, no de otra aparte.
+   El panel de arriba dice cuántas faltan y de cuántos jugadores queda cada grupo.
 3. **Sorteo.** Revuelve las veces que quieras y congela: se arman los grupos y el
-   calendario de todos contra todos.
-4. **Resultados.** Anota cada set. Marca *super muerte* si el tercer set se juega
-   como match tie-break a 10; el botón *W.O.* registra un default como 6-0, 6-0.
+   calendario de todos contra todos. Al sorteo entran sólo los que no son cabeza de grupo.
+4. **Resultados.** Los dos primeros sets se anotan por juegos y no pasan de 7. El
+   tercero es super muerte a 10 puntos: cuenta como set ganado (7-6) pero sus puntos
+   no suman juegos. El botón *W.O.* registra un default como 6-0, 6-0.
 5. **Grupos, Ranking y Cuadro.** Se recalculan solos conforme capturas.
 
 **Exportar** descarga el torneo completo en JSON e **Importar** lo restaura: es la

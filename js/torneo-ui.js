@@ -106,25 +106,68 @@
 
   // ------------------------------------------------------------- jugadores
 
-  function filaJugador(nombre, indice, tipo) {
+  function esCabeza(categoria, nombre) {
+    return (categoria.cabezas || []).some(function (otro) { return Model.esMismoJugador(otro, nombre); });
+  }
+
+  function filaJugador(categoria, nombre, indice) {
+    var marcado = esCabeza(categoria, nombre);
     return (
-      '<div class="fila-jugador">' +
+      '<div class="fila-jugador' + (marcado ? " es-cabeza" : "") + '">' +
       "<span>" + (indice + 1) + "</span>" +
-      '<input type="text" value="' + escapar(nombre) + '" data-tipo="' + tipo + '" data-indice="' + indice + '" />' +
-      '<button type="button" class="btn-icono" data-solo-admin data-quitar="' + tipo + '" data-indice="' + indice +
+      '<button type="button" class="marca-cg' + (marcado ? " is-activa" : "") + '" data-solo-admin' +
+      ' data-cg="' + escapar(nombre) + '" aria-pressed="' + (marcado ? "true" : "false") +
+      '" title="Cabeza de grupo">CG</button>' +
+      '<input type="text" value="' + escapar(nombre) + '" data-tipo="inscrito" data-indice="' + indice + '" />' +
+      '<button type="button" class="btn-icono" data-solo-admin data-quitar="inscrito" data-indice="' + indice +
       '" aria-label="Quitar">&times;</button>' +
       "</div>"
     );
   }
 
+  /** Cuántas cabezas faltan y de cuántos jugadores queda cada grupo. */
+  function pintarResumenGrupos(categoria) {
+    var caja = $("#resumen-grupos");
+    if (!caja) return;
+
+    var grupos = categoria.numeroGrupos || 0;
+    var marcadas = (categoria.cabezas || []).length;
+    var inscritos = (categoria.inscritos || []).length;
+    $("#num-grupos").value = grupos;
+
+    if (!grupos) {
+      caja.innerHTML = '<p class="nota">Escribe de cuántos grupos será la categoría.</p>';
+      return;
+    }
+
+    var tamanos = Model.tamanosDeGrupo(inscritos, grupos);
+    var minimo = Math.min.apply(null, tamanos);
+    var maximo = Math.max.apply(null, tamanos);
+    var reparto = minimo === maximo
+      ? minimo + " jugadores por grupo"
+      : minimo + " o " + maximo + " jugadores por grupo";
+
+    var faltan = grupos - marcadas;
+    var estadoCabezas = faltan === 0
+      ? '<span class="ok">Ya están las ' + grupos + " cabezas de grupo.</span>"
+      : faltan > 0
+        ? '<span class="pendiente">Faltan ' + faltan + " por marcar.</span>"
+        : '<span class="pendiente">Sobran ' + Math.abs(faltan) + ": desmárcalas o sube el número de grupos.</span>";
+
+    caja.innerHTML =
+      '<ul class="resumen-grupos">' +
+      "<li><strong>" + grupos + "</strong> grupos · <strong>" + inscritos + "</strong> inscritos</li>" +
+      "<li>Cabezas de grupo: <strong>" + marcadas + " de " + grupos + "</strong> " + estadoCabezas + "</li>" +
+      (inscritos ? "<li>Quedaría en " + escapar(reparto) + " (" + tamanos.join(", ") + ")</li>" : "") +
+      "</ul>";
+  }
+
   function pintarJugadores() {
     var categoria = Store.categoria();
-    if (!categoria) return avisarSinCategoria("#lista-cabezas", "#lista-inscritos");
-    $("#lista-cabezas").innerHTML = categoria.cabezas.length
-      ? categoria.cabezas.map(function (nombre, i) { return filaJugador(nombre, i, "cabeza"); }).join("")
-      : '<p class="nota">Aún no hay cabezas de grupo.</p>';
+    if (!categoria) return avisarSinCategoria("#resumen-grupos", "#lista-inscritos");
+    pintarResumenGrupos(categoria);
     $("#lista-inscritos").innerHTML = categoria.inscritos.length
-      ? categoria.inscritos.map(function (nombre, i) { return filaJugador(nombre, i, "inscrito"); }).join("")
+      ? categoria.inscritos.map(function (nombre, i) { return filaJugador(categoria, nombre, i); }).join("")
       : '<p class="nota">Aún no hay inscritos.</p>';
   }
 
@@ -172,29 +215,44 @@
 
   // ---------------------------------------------- tarjeta de partido (HTML)
 
+  /**
+   * El tercer set se juega como super muerte a 10 puntos. Sólo un partido
+   * viejo, capturado antes de esta regla, puede tener un tercer set con juegos.
+   */
+  function esSuperMuerte(partido) {
+    return !partido || partido.superMuerte !== false;
+  }
+
   function necesitaTieBreak(partido, indice) {
     var set = (partido.sets || [])[indice];
     if (!set) return false;
-    if (partido.superMuerte && indice === 2) return false;
+    if (esSuperMuerte(partido) && indice === 2) return false;
     return (set.a === 7 && set.b === 6) || (set.a === 6 && set.b === 7);
   }
 
+  // Topes de captura: un set normal se gana 6 o 7 juegos; el super tie-break
+  // es a 10 puntos pero puede alargarse (12-10, 15-13…), igual que un tie-break.
+  var MAX_JUEGOS = 7;
+  var MAX_PUNTOS = 30;
+
   function entradaTieBreak(indice, lado, valor) {
     return (
-      '<input type="number" min="0" max="99" class="tb" placeholder="tb" value="' +
+      '<input type="number" min="0" max="' + MAX_PUNTOS + '" class="tb" placeholder="tb" value="' +
       (valor == null ? "" : valor) + '" data-set="' + indice + '" data-lado="' + lado + '" data-tb="1" />'
     );
   }
 
   function celdaSet(partido, indice, lado) {
     var set = (partido.sets || [])[indice] || {};
-    var esSuper = partido.superMuerte && indice === 2;
+    var esSuper = esSuperMuerte(partido) && indice === 2;
     // Con super muerte los inputs son los puntos del match tie-break, no juegos.
     var valor = esSuper ? (lado === "a" ? set.tbA : set.tbB) : (lado === "a" ? set.a : set.b);
 
     var html =
-      '<input type="number" min="0" max="99" inputmode="numeric" value="' + (valor == null ? "" : valor) +
-      '" data-set="' + indice + '" data-lado="' + lado + '" aria-label="Set ' + (indice + 1) + '" />';
+      '<input type="number" min="0" max="' + (esSuper ? MAX_PUNTOS : MAX_JUEGOS) +
+      '" inputmode="numeric" value="' + (valor == null ? "" : valor) +
+      '" data-set="' + indice + '" data-lado="' + lado + '" aria-label="' +
+      (esSuper ? "Super muerte" : "Set " + (indice + 1)) + '" />';
 
     if (necesitaTieBreak(partido, indice)) {
       html += entradaTieBreak(indice, lado, lado === "a" ? set.tbA : set.tbB);
@@ -209,8 +267,11 @@
       (ganador ? "Gana <strong>" + escapar(ganador) + "</strong> · " + escapar(Model.marcador(partido)) : "Sin resultado") +
       "</div>" +
       '<div class="partido__acciones">' +
-      '<label class="check-super"><input type="checkbox" data-super="1"' + (partido.superMuerte ? " checked" : "") +
-      " /> Tercer set en super muerte</label>" +
+      '<span class="regla-super">' +
+      (esSuperMuerte(partido)
+        ? "Tercer set: super muerte a 10 puntos"
+        : "Tercer set capturado con juegos (partido anterior a la regla)") +
+      "</span>" +
       '<button type="button" class="btn btn--sm btn--ghost" data-solo-admin data-wo="a">W.O. ' + escapar(partido.jugadorA) + "</button>" +
       '<button type="button" class="btn btn--sm btn--ghost" data-solo-admin data-wo="b">W.O. ' + escapar(partido.jugadorB) + "</button>" +
       '<button type="button" class="btn btn--sm btn--ghost" data-solo-admin data-limpiar="1">Limpiar</button>' +
@@ -235,6 +296,7 @@
 
     return (
       '<div class="partido" data-partido="' + escapar(partido.id) +
+      '" data-super="' + (esSuperMuerte(partido) ? "1" : "0") +
       '" data-ambito="' + (config.ambito || "grupo") +
       '" data-titulo="' + escapar(config.titulo || partido.id) +
       '" data-jugador-a="' + escapar(partido.jugadorA) +
@@ -244,7 +306,7 @@
       "</div>" +
       '<div class="marcador-grid">' +
       '<div></div><div class="encabezado">Set 1</div><div class="encabezado">Set 2</div>' +
-      '<div class="encabezado" data-encabezado-3>' + (partido.superMuerte ? "S. muerte" : "Set 3") + "</div>" +
+      '<div class="encabezado" data-encabezado-3>' + (esSuperMuerte(partido) ? "S. muerte" : "Set 3") + "</div>" +
       '<div class="nombre' + (ganaA ? " gana" : "") + '">' + escapar(partido.jugadorA) + "</div>" +
       celdaSet(partido, 0, "a") + celdaSet(partido, 1, "a") + celdaSet(partido, 2, "a") +
       '<div class="nombre' + (ganaB ? " gana" : "") + '">' + escapar(partido.jugadorB) + "</div>" +
@@ -259,7 +321,7 @@
 
   /** Lee los inputs de una tarjeta y devuelve el marcador en el formato del modelo. */
   function leerMarcador(tarjeta) {
-    var superMuerte = $("[data-super]", tarjeta).checked;
+    var superMuerte = tarjeta.dataset.super !== "0";
     var sets = [null, null, null];
 
     for (var indice = 0; indice < 3; indice++) {
@@ -345,7 +407,7 @@
         jugadorA: tarjeta.dataset.jugadorA,
         jugadorB: tarjeta.dataset.jugadorB,
         sets: guardado.sets || [],
-        superMuerte: !!guardado.superMuerte
+        superMuerte: guardado.superMuerte !== false
       };
     } else {
       partido = Store.partidoPorId(id);
@@ -602,7 +664,7 @@
         jugadorA: partido.ladoA.jugador,
         jugadorB: partido.ladoB.jugador,
         sets: guardado.sets || [],
-        superMuerte: !!guardado.superMuerte
+        superMuerte: guardado.superMuerte !== false
       },
       { titulo: partido.id, ambito: "cuadro" }
     );
@@ -618,7 +680,7 @@
 
     var tarjetas = [
       { valor: Store.categorias().length, etiqueta: "Categorías abiertas" },
-      { valor: categoria.cabezas.length + categoria.inscritos.length, etiqueta: "Jugadores" },
+      { valor: categoria.inscritos.length, etiqueta: "Jugadores" },
       { valor: categoria.grupos.length, etiqueta: "Grupos" },
       { valor: jugados + " / " + categoria.partidos.length, etiqueta: "Partidos de grupo jugados" },
       { valor: datos.ranking.length, etiqueta: "Clasificados" },
@@ -698,21 +760,26 @@
 
   // ------------------------------------------------------------- eventos
 
-  function listaDe(tipo) {
+  function listaDeInscritos() {
     var categoria = Store.categoria();
-    if (!categoria) return [];
-    return tipo === "cabeza" ? categoria.cabezas.slice() : categoria.inscritos.slice();
+    return categoria ? categoria.inscritos.slice() : [];
   }
 
-  function guardarLista(tipo, lista) {
-    if (tipo === "cabeza") Store.setCabezas(lista);
-    else Store.setInscritos(lista);
+  /** Nadie gana un set con más de 7 juegos ni pierde con menos de 0. */
+  function limitarCaptura(entrada) {
+    if (entrada.value === "") return;
+    var tope = Number(entrada.max);
+    var valor = Number(entrada.value);
+    if (!isFinite(valor)) return;
+    if (valor > tope) entrada.value = String(tope);
+    if (valor < 0) entrada.value = "0";
   }
 
   /** Mientras se escribe: sólo refrescamos la tarjeta, sin re-dibujar la vista. */
   function alEscribirEnPartido(evento) {
     var tarjeta = evento.target.closest(".partido");
     if (!tarjeta || !evento.target.matches("input[data-set]")) return;
+    limitarCaptura(evento.target);
     actualizarTarjeta(tarjeta);
   }
 
@@ -725,12 +792,6 @@
         fecha: $('[data-campo="fecha"]', tarjeta).value,
         hora: $('[data-campo="hora"]', tarjeta).value
       });
-      return;
-    }
-
-    if (evento.target.matches("[data-super]")) {
-      guardarMarcador(tarjeta);
-      reconstruirTarjeta(tarjeta);
       return;
     }
 
@@ -766,10 +827,10 @@
     }
 
     if (esCuadro) {
-      Store.setResultadoCuadro(tarjeta.dataset.partido, sets.length ? { sets: sets, superMuerte: false } : null);
+      Store.setResultadoCuadro(tarjeta.dataset.partido, sets.length ? { sets: sets, superMuerte: true } : null);
       pintarCuadro();
     } else {
-      Store.setPartido(tarjeta.dataset.partido, { sets: sets, superMuerte: false });
+      Store.setPartido(tarjeta.dataset.partido, { sets: sets, superMuerte: true });
       reconstruirTarjeta(tarjeta);
     }
     return true;
@@ -794,30 +855,52 @@
 
     // --- jugadores
     $("#vista-jugadores").addEventListener("change", function (evento) {
+      if (evento.target.id === "num-grupos") {
+        Store.setNumeroGrupos(evento.target.value);
+        pintarJugadores();
+        return;
+      }
       var entrada = evento.target.closest("input[data-tipo]");
       if (!entrada) return;
-      var lista = listaDe(entrada.dataset.tipo);
-      lista[Number(entrada.dataset.indice)] = entrada.value.trim();
-      guardarLista(entrada.dataset.tipo, lista.filter(Boolean));
+      var categoria = Store.categoria();
+      if (!categoria) return;
+      var lista = listaDeInscritos();
+      var indice = Number(entrada.dataset.indice);
+      var anterior = lista[indice];
+      var nuevoNombre = entrada.value.trim();
+      // Corregir el nombre de una cabeza de grupo no debe quitarle la marca.
+      var cabezasPrevias = (categoria.cabezas || []).slice();
+      var eraCabeza = !!anterior && esCabeza(categoria, anterior);
+
+      lista[indice] = nuevoNombre;
+      Store.setInscritos(lista.filter(Boolean));
+      if (nuevoNombre && eraCabeza) {
+        Store.setCabezas(cabezasPrevias.map(function (nombre) {
+          return Model.esMismoJugador(nombre, anterior) ? nuevoNombre : nombre;
+        }));
+      }
       pintarJugadores();
     });
 
     $("#vista-jugadores").addEventListener("click", function (evento) {
+      var marca = evento.target.closest("[data-cg]");
+      if (marca) {
+        var motivo = Store.alternarCabeza(marca.dataset.cg);
+        if (motivo) window.alert(motivo);
+        pintarJugadores();
+        return;
+      }
+
       var quitar = evento.target.closest("[data-quitar]");
       if (!quitar) return;
-      var lista = listaDe(quitar.dataset.quitar);
+      var lista = listaDeInscritos();
       lista.splice(Number(quitar.dataset.indice), 1);
-      guardarLista(quitar.dataset.quitar, lista);
-      pintarJugadores();
-    });
-
-    $("#btn-agregar-cabeza").addEventListener("click", function () {
-      Store.setCabezas(listaDe("cabeza").concat("Nueva cabeza de grupo"));
+      Store.setInscritos(lista);
       pintarJugadores();
     });
 
     $("#btn-agregar-inscrito").addEventListener("click", function () {
-      Store.setInscritos(listaDe("inscrito").concat("Nuevo jugador"));
+      Store.setInscritos(listaDeInscritos().concat("Nuevo jugador"));
       pintarJugadores();
     });
 
@@ -840,6 +923,10 @@
         window.alert("Primero captura a los inscritos.");
         return;
       }
+      if (!Store.porSortear(categoria).length) {
+        window.alert("Todos los inscritos están marcados como cabeza de grupo: no hay a quién sortear.");
+        return;
+      }
       var pelota = $("#btn-sortear");
       pelota.classList.add("girando");
       window.setTimeout(function () { pelota.classList.remove("girando"); }, 700);
@@ -854,8 +941,15 @@
         window.alert("Haz el sorteo antes de congelarlo.");
         return;
       }
-      if (!categoria.cabezas.length) {
-        window.alert("Captura al menos una cabeza de grupo.");
+      var faltan = Store.cabezasQueFaltan(categoria);
+      if (!categoria.numeroGrupos) {
+        window.alert("Indica de cuántos grupos será la categoría en la pestaña Jugadores.");
+        return;
+      }
+      if (faltan !== 0) {
+        window.alert(faltan > 0
+          ? "Faltan " + faltan + " cabezas de grupo por marcar en la pestaña Jugadores."
+          : "Hay " + Math.abs(faltan) + " cabezas de grupo de más para " + categoria.numeroGrupos + " grupos.");
         return;
       }
       Store.congelarSorteo();

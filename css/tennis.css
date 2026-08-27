@@ -277,12 +277,43 @@ textarea { resize: vertical; }
 
 .fila-jugador {
   display: grid;
-  grid-template-columns: 34px 1fr 40px;
+  grid-template-columns: 34px 44px 1fr 40px;
   gap: 8px;
   align-items: center;
 }
 
 .fila-jugador span { color: var(--ink-400); font-size: 0.85rem; font-weight: 600; }
+.fila-jugador.es-cabeza input[type="text"] { border-color: var(--ball-500); font-weight: 600; }
+
+/* Marca de cabeza de grupo: apagada es un contorno, encendida es la pelota. */
+.marca-cg {
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid var(--line-200);
+  background: transparent;
+  color: var(--ink-400);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.marca-cg:hover { border-color: var(--court-500); color: var(--court-700); }
+
+.marca-cg.is-activa {
+  background: var(--ball-500);
+  border-color: var(--ball-600);
+  color: var(--court-900);
+}
+
+/* Resumen de la configuración de grupos */
+.campo-grupos { display: inline-grid; gap: 6px; font-weight: 600; font-size: 0.9rem; margin-bottom: 12px; }
+.campo-grupos input { width: 110px; }
+
+.resumen-grupos { list-style: none; display: grid; gap: 6px; font-size: 0.9rem; color: var(--ink-600); }
+.resumen-grupos strong { color: var(--court-800); }
+.resumen-grupos .ok { color: #1f7a4d; font-weight: 600; }
+.resumen-grupos .pendiente { color: #a05a00; font-weight: 600; }
 
 .bloque-pegar { margin-top: 16px; }
 .bloque-pegar summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; }
@@ -464,8 +495,7 @@ tr.clasificado td:first-child { border-left: 3px solid var(--ball-600); }
 }
 
 .partido__acciones { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.check-super { display: inline-flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--ink-600); }
-.check-super input { width: auto; }
+.regla-super { font-size: 0.82rem; color: var(--ink-400); align-self: center; }
 .resultado-texto { color: var(--ink-600); }
 .resultado-texto strong { color: var(--court-700); }
 

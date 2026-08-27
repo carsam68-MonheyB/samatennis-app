@@ -171,6 +171,25 @@ ok(!!completo.campeon, "con el cuadro completo hay campeón: " + (completo.campe
 ok(!!completo.finalista, "y finalista: " + (completo.finalista || {}).jugador);
 
 // ---------------------------------------------------------------------------
+console.log("\nTamaños de grupo: el número de grupos define el reparto");
+
+igual(Model.tamanosDeGrupo(28, 9), [3, 3, 3, 3, 3, 3, 3, 3, 4],
+  "28 jugadores en 9 grupos: ocho de 3 y uno de 4, como el Excel");
+igual(Model.tamanosDeGrupo(28, 12), [2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3],
+  "28 en 12 grupos: los últimos absorben el sobrante");
+igual(Model.tamanosDeGrupo(16, 4), [4, 4, 4, 4], "16 en 4 grupos: parejo");
+igual(Model.tamanosDeGrupo(28, 0), [], "sin grupos configurados no hay reparto");
+
+const repartidos = Model.repartirGrupos(
+  ["A", "B", "C"],
+  ["p1", "p2", "p3", "p4", "p5", "p6", "p7"]
+);
+igual(repartidos.map((grupo) => grupo.jugadores.length), Model.tamanosDeGrupo(10, 3),
+  "el reparto real coincide con los tamaños que anuncia la configuración");
+ok(repartidos.every((grupo, i) => grupo.jugadores[0] === ["A", "B", "C"][i]),
+  "y cada grupo arranca con su cabeza de grupo");
+
+// ---------------------------------------------------------------------------
 console.log(`\n${pruebas - fallos}/${pruebas} pruebas pasaron`);
 if (fallos) {
   console.log(`${fallos} FALLARON`);
