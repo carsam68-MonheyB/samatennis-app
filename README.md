@@ -170,12 +170,12 @@ La app funciona sola contra `localStorage`. Conectada a Firebase, además:
 | Exportar un respaldo | ✓ | ✓ | — |
 | Ver resultados, tablas, ranking y cuadro | ✓ | ✓ | ✓ |
 
-En las tablas de grupo y en el ranking, quien sólo consulta ve
+En las tablas de grupo, quien sólo consulta ve
 `# · Jugador · PJ · PG-PP · Sets · Juegos · Puntaje`: partidos jugados (que son
 los ganados más los perdidos), sets, juegos y el puntaje que ordena la tabla. Los
-porcentajes de sets y de juegos son el detalle de cómo se arma ese puntaje y sólo
-los ve quien captura, igual que la columna **Des.**, que es un control y no un
-resultado.
+porcentajes de sets y de juegos son el detalle de cómo se arma ese puntaje y ahí
+sólo los ve quien captura, igual que la columna **Des.**, que es un control y no
+un resultado. El ranking sí va completo para todos.
 
 La identidad del torneo es del dueño; el administrador trabaja dentro del
 torneo que le asignaron.
