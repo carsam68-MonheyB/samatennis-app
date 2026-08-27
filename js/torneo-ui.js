@@ -30,6 +30,18 @@
     return valor == null ? "—" : valor.toFixed(4);
   }
 
+  /** copa-tenis-2025-2026-08-27.json */
+  function nombreDeRespaldo(nombreTorneo) {
+    var base = Store.identificadorDesde(nombreTorneo) || "torneo";
+    var hoy = new Date();
+    var dia = [
+      hoy.getFullYear(),
+      String(hoy.getMonth() + 1).padStart(2, "0"),
+      String(hoy.getDate()).padStart(2, "0")
+    ].join("-");
+    return base + "-" + dia + ".json";
+  }
+
   // ------------------------------------------------------------- pestañas
 
   // Llave del cuadro con el formulario de captura abierto. Se recuerda para
@@ -1182,14 +1194,21 @@
       var url = URL.createObjectURL(blob);
       var enlace = document.createElement("a");
       enlace.href = url;
-      enlace.download = (categoria.torneo.nombre || "torneo").replace(/[^\w-]+/g, "-").toLowerCase() + ".json";
+      // El respaldo lleva fecha: son varios, uno al final de cada jornada.
+      enlace.download = nombreDeRespaldo(estado.torneo.nombre);
       document.body.appendChild(enlace);
       enlace.click();
       document.body.removeChild(enlace);
       URL.revokeObjectURL(url);
     });
 
-    $("#btn-importar").addEventListener("click", function () { $("#input-importar").click(); });
+    $("#btn-importar").addEventListener("click", function () {
+      if (!window.confirm(
+        "Restaurar un respaldo reemplaza lo que hay capturado ahora mismo. " +
+        "Si no estás seguro, exporta primero. ¿Continuar?"
+      )) return;
+      $("#input-importar").click();
+    });
 
     $("#input-importar").addEventListener("change", function (evento) {
       var archivo = evento.target.files && evento.target.files[0];
@@ -1197,7 +1216,9 @@
       var lector = new FileReader();
       lector.onload = function () {
         try {
-          Store.importar(String(lector.result));
+          // Quien no es dueño restaura el contenido, no la identidad: el
+          // identificador del torneo y sus administradores no se tocan.
+          Store.importar(String(lector.result), { conservarIdentidad: soloDueno });
           render();
         } catch (error) {
           window.alert("El archivo no tiene el formato esperado.");

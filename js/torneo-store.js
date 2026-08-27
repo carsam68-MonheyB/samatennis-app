@@ -520,8 +520,24 @@
     return JSON.stringify(estado, null, 2);
   }
 
-  function importar(texto) {
+  /**
+   * Restaura un torneo desde un respaldo.
+   *
+   * Con conservarIdentidad se respetan el identificador del torneo abierto y
+   * su lista de administradores: eso es del dueño, y de todos modos el
+   * servidor rechazaría que otro los cambiara. Se restaura el contenido.
+   */
+  function importar(texto, opciones) {
+    var config = opciones || {};
+    var torneoIdPrevio = estado.torneoId;
+    var adminsPrevios = (estado.admins || []).slice();
+
     estado = normalizarEstado(JSON.parse(texto));
+
+    if (config.conservarIdentidad) {
+      estado.torneoId = torneoIdPrevio;
+      estado.admins = adminsPrevios;
+    }
     guardar();
     return estado;
   }

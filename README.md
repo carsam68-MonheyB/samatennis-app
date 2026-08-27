@@ -167,7 +167,7 @@ La app funciona sola contra `localStorage`. Conectada a Firebase, además:
 | Categorías, jugadores y sorteo | ✓ | ✓ | — |
 | Calendario y captura de resultados | ✓ | ✓ | — |
 | Cupos de clasificación y desempate manual | ✓ | ✓ | — |
-| Exportar un respaldo | ✓ | ✓ | — |
+| Exportar y restaurar respaldos | ✓ | ✓ | — |
 | Ver resultados, tablas, ranking y cuadro | ✓ | ✓ | ✓ |
 
 En las tablas de grupo, quien sólo consulta ve
@@ -247,6 +247,12 @@ por cupos, la jerarquía de siembra y la resolución del cuadro completo.
    marcador imposible.
 5. **Grupos, Ranking y Cuadro.** Se recalculan solos conforme capturas.
 
-**Exportar** descarga el torneo completo en JSON e **Importar** lo restaura: es la
-forma de respaldarlo o pasarlo a otra computadora, porque los datos viven sólo en
-el navegador donde se capturaron.
+**Exportar** descarga el torneo completo en JSON, con el nombre del torneo y la
+fecha (`copa-tenis-2025-2026-03-14.json`), e **Importar** lo restaura. Es la forma
+de cerrar la jornada con un respaldo o de pasar el torneo a otra computadora.
+
+Ambos botones son del dueño y del administrador: quien captura es quien respalda.
+Al restaurar, el administrador recupera el contenido —jugadores, grupos,
+marcadores, cuadro— pero conserva el identificador del torneo abierto y su lista
+de administradores; cambiar eso es del dueño, y las reglas del servidor lo
+rechazarían de todos modos. El dueño restaura todo, identidad incluida.
